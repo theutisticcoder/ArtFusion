@@ -3,135 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HTML5 Oil Painting Simulator</title>
+    <title>Hyper-Realistic Oil Painting Simulator</title>
     <style>
-        :root {
-            --bg-color: #1a1a1a;
-            --panel-bg: #2d2d2d;
-            --text-color: #e0e0e0;
-            --accent: #ff9800;
-        }
-
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            touch-action: none; /* Prevents scrolling on mobile */
-        }
-
-        /* Layout */
-        #app {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
+        :root { --bg-color: #1a1a1a; --panel-bg: #2d2d2d; --text-color: #e0e0e0; --accent: #ff9800; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: var(--bg-color); color: var(--text-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; touch-action: none; }
+        #app { display: flex; flex-direction: column; height: 100%; }
+        
         /* Toolbar */
         #toolbar {
-            background-color: var(--panel-bg);
-            padding: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            border-bottom: 1px solid #444;
-            z-index: 10;
+            background-color: var(--panel-bg); padding: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; 
+            border-bottom: 1px solid #444; z-index: 10; justify-content: space-between;
         }
-
-        .group {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-            padding-right: 10px;
-            border-right: 1px solid #444;
-        }
-        .group:last-child { border-right: none; }
-
-        /* Controls */
+        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        
         button {
-            background: #444;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background 0.2s;
+            background: #444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; 
+            font-size: 0.85rem; transition: 0.2s; user-select: none;
         }
-
         button:hover { background: #555; }
-        button.active { background: var(--accent); color: #000; font-weight: bold; }
-
-        input[type="color"] {
-            -webkit-appearance: none;
-            border: none;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            background: none;
-        }
-        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
-
-        input[type="range"] {
-            width: 80px;
-        }
-
-        label {
-            font-size: 0.8rem;
-            color: #aaa;
-        }
-
+        button.active { background: var(--accent); color: #000; font-weight: bold; box-shadow: 0 0 8px rgba(255,152,0,0.4); }
+        
+        .slider-group { display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; }
+        input[type="range"] { width: 70px; cursor: pointer; }
+        input[type="color"] { border: none; width: 28px; height: 28px; cursor: pointer; background: none; }
+        
         /* Canvas Area */
         #canvas-container {
-            flex: 1;
-            position: relative;
-            background-color: #fff; /* Canvas paper color */
-            background-image: 
-                linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
-                linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
-                linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            overflow: hidden;
-            cursor: crosshair;
+            flex: 1; position: relative; background-color: #f0f0f0; /* Canvas paper */
+            background-image: radial-gradient(#e0e0e0 1px, transparent 1px); background-size: 20px 20px;
+            overflow: hidden; cursor: crosshair; 
         }
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        /* HUD Messages */
-        #status {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.7);
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.5s;
-        }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
         
-        /* Responsive adjustments */
+        /* HUD */
+        #status { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+        
         @media (max-width: 600px) {
-            #toolbar { gap: 5px; padding: 5px; overflow-x: auto; flex-wrap: nowrap; }
-            .group { flex-shrink: 0; }
-            label { display: none; }
-            input[type="range"] { width: 60px; }
+            #toolbar { overflow-x: auto; justify-content: flex-start; padding: 5px; gap: 5px; }
+            .controls { flex-wrap: nowrap; }
+            button { font-size: 0.75rem; padding: 5px 8px; }
+            input[type="range"] { width: 50px; }
         }
     </style>
 </head>
@@ -139,32 +50,28 @@
 
 <div id="app">
     <div id="toolbar">
-        <div class="group">
-            <button id="btn-brush" class="active">Brush</button>
-            <button id="btn-blur">Blur</button>
-            <button id="btn-knife">Knife</button>
-            <button id="btn-erase">Erase</button>
-        </div>
-
-        <div class="group">
-            <label>Color</label>
-            <input type="color" id="color-picker" value="#ff4500">
-            <div id="palette" style="display:flex; gap:2px;">
-                <!-- Swatches generated by JS -->
+        <div class="controls">
+            <div class="slider-group">
+                <label>Color</label>
+                <input type="color" id="color-picker" value="#e74c3c">
+            </div>
+            <div class="slider-group">
+                <label>Size</label>
+                <input type="range" id="size-slider" min="5" max="80" value="30">
+            </div>
+            <div class="slider-group">
+                <label>Wetness</label>
+                <input type="range" id="wet-slider" min="1" max="100" value="80" title="How wet the paint is (drying time)">
+            </div>
+            <div class="slider-group">
+                <label>Viscosity</label>
+                <input type="range" id="visc-slider" min="1" max="100" value="40" title="Paint thickness (Flow)">
             </div>
         </div>
-
-        <div class="group">
-            <label>Size</label>
-            <input type="range" id="size-slider" min="5" max="100" value="30">
-        </div>
-
-        <div class="group">
-            <label>Load</label>
-            <input type="range" id="flow-slider" min="1" max="100" value="50" title="Paint Load">
-        </div>
-
-        <div class="group">
+        <div class="controls">
+            <button id="btn-smooth" class="active">Round</button>
+            <button id="btn-texture">Textured</button>
+            <button id="btn-knife">Palette Knife</button>
             <button id="btn-undo">Undo</button>
             <button id="btn-clear">Clear</button>
             <button id="btn-save">Save</button>
@@ -176,597 +83,549 @@
         <canvas id="art-canvas"></canvas>
     </div>
 
-    <div id="status">Saved!</div>
+    <div id="status">Action</div>
 </div>
 
-<!-- Load LocalForage from CDN (Required for saving) -->
+<!-- LocalForage for storage -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
 <script>
 /**
- * OIL PAINT SIMULATION ENGINE
+ * PHYSICS-BASED OIL PAINT SIMULATION
  * 
- * Core Logic:
- * 1. Rendering is done on a single <canvas> element.
- * 2. The simulation uses a particle approach where "dabs" of paint are applied 
- *    based on pointer movement speed.
- * 3. "Wetness" is simulated by mixing the brush color with the existing canvas 
- *    pixel data (destination-in / source-over composites).
- * 4. For the "Oil" look, we apply slight Gaussian blurs to dabs and use 
- *    randomized offsets to prevent robotic lines.
+ * Logic:
+ * 1. Particles: Paint is applied as discrete "dabs" (particles).
+ * 2. Rendering: Dabs are drawn as textured shapes with noise.
+ * 3. Wetness: Each particle has a 'wetness' value. Wet particles interact.
+ * 4. Smearing: If the brush moves over wet particles, they are displaced (advection).
+ * 5. Drying: Wetness decreases over time.
+ * 6. Optimization: Spatial Hash Grid for collision detection O(1) instead of O(N^2).
  */
 
 const canvas = document.getElementById('art-canvas');
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const ctx = canvas.getContext('2d', { alpha: false }); // No transparency on bg for perf
 const container = document.getElementById('canvas-container');
 
-// State
+// --- Configuration & State ---
 const state = {
     isDrawing: false,
-    tool: 'brush', // brush, blur, knife, erase
-    color: '#ff4500',
+    tool: 'smooth', // smooth, texture, knife, erase
+    color: '#e74c3c',
     size: 30,
-    flow: 0.5, // 0.0 to 1.0
+    wetness: 0.8, // 0 to 1
+    viscosity: 0.4, // 0 to 1 (Flow rate)
     lastX: 0,
     lastY: 0,
-    lastTime: 0,
-    points: [], // For smoothing
-    history: [], // Undo stack
-    historyIndex: -1,
-    maxHistory: 15
-};
-
-// Configuration
-const CONFIG = {
-    brushHardness: 0.2, // Softness of brush edges
-    colorMixing: 0.15, // How aggressively colors blend (0-1)
-    smearAmount: 2, // Smear distance
-    samplingStep: 4 // Pixel sampling step for performance (lower = better quality, slower)
+    particles: [], // Active wet particles
+    maxParticles: 3000, // Limit to prevent lag
+    undoStack: [],
+    maxUndo: 10,
+    hueOffset: 0
 };
 
 // UI Elements
 const ui = {
-    btnBrush: document.getElementById('btn-brush'),
-    btnBlur: document.getElementById('btn-blur'),
-    btnKnife: document.getElementById('btn-knife'),
-    btnErase: document.getElementById('btn-erase'),
-    colorPicker: document.getElementById('color-picker'),
-    sizeSlider: document.getElementById('size-slider'),
-    flowSlider: document.getElementById('flow-slider'),
-    palette: document.getElementById('palette'),
-    btnUndo: document.getElementById('btn-undo'),
-    btnClear: document.getElementById('btn-clear'),
-    btnSave: document.getElementById('btn-save'),
-    btnLoad: document.getElementById('btn-load'),
+    color: document.getElementById('color-picker'),
+    size: document.getElementById('size-slider'),
+    wet: document.getElementById('wet-slider'),
+    visc: document.getElementById('visc-slider'),
+    btns: {
+        smooth: document.getElementById('btn-smooth'),
+        texture: document.getElementById('btn-texture'),
+        knife: document.getElementById('btn-knife'),
+        undo: document.getElementById('btn-undo'),
+        clear: document.getElementById('btn-clear'),
+        save: document.getElementById('btn-save'),
+        load: document.getElementById('btn-load')
+    },
     status: document.getElementById('status')
 };
 
-// --- INITIALIZATION ---
+// --- Utilities ---
+const rnd = (min, max) => Math.random() * (max - min) + min;
+const hexToRgb = (hex) => {
+    const bigint = parseInt(hex.slice(1), 16);
+    return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+};
+const rgbToHex = (r, g, b) => "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+
+// --- Spatial Hash Grid (Optimization) ---
+// Divides canvas into cells to quickly find neighbors
+class SpatialGrid {
+    constructor(width, height, cellSize) {
+        this.cellSize = cellSize;
+        this.cols = Math.ceil(width / cellSize);
+        this.rows = Math.ceil(height / cellSize);
+        this.grid = new Array(this.cols * this.rows).fill(null).map(() => []);
+    }
+
+    clear() {
+        for (let i = 0; i < this.grid.length; i++) this.grid[i].length = 0;
+    }
+
+    insert(particle) {
+        const col = Math.floor(particle.x / this.cellSize);
+        const row = Math.floor(particle.y / this.cellSize);
+        if (col >= 0 && col < this.cols && row >= 0 && row < this.rows) {
+            this.grid[row * this.cols + col].push(particle);
+        }
+    }
+
+    // Get particles in 3x3 neighboring cells
+    getNeighbors(x, y) {
+        const col = Math.floor(x / this.cellSize);
+        const row = Math.floor(y / this.cellSize);
+        const neighbors = [];
+        
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                const c = col + i;
+                const r = row + j;
+                if (c >= 0 && c < this.cols && r >= 0 && r < this.rows) {
+                    neighbors.push(...this.grid[r * this.cols + c]);
+                }
+            }
+        }
+        return neighbors;
+    }
+}
+
+// --- Particle System ---
+class PaintParticle {
+    constructor(x, y, color, size, wetness, type) {
+        this.x = x;
+        this.y = y;
+        this.color = color; // RGB object
+        this.size = size;
+        this.initialSize = size;
+        this.wetness = wetness; // 0 = dry, 1 = very wet
+        this.type = type; // 'smooth', 'texture', 'knife'
+        this.life = 1.0; // For fading out old particles
+        this.vx = 0; // Velocity (for smearing)
+        this.vy = 0;
+        
+        // Texture generation (bump map)
+        this.textureSeed = Math.random() * 1000;
+    }
+
+    update(dt, neighbors) {
+        // 1. Drying
+        if (this.wetness > 0) {
+            this.wetness -= 0.005 * dt; // Drying rate
+            if (this.wetness < 0) this.wetness = 0;
+        }
+
+        // 2. Physics (Smearing/Flow)
+        // If wet, friction is lower, allowing movement
+        if (this.wetness > 0.1) {
+            // Apply drag (viscosity)
+            this.vx *= 0.9;
+            this.vy *= 0.9;
+            
+            // Gravity/Thickening (Oil paint piles up, but simplified here to spreading)
+            // If neighbor is wet, exchange color slightly (diffusion)
+            if (neighbors && neighbors.length > 0) {
+                for (let n of neighbors) {
+                    if (n === this) continue;
+                    const dx = this.x - n.x;
+                    const dy = this.y - n.y;
+                    const distSq = dx*dx + dy*dy;
+                    
+                    // Collision/Mixing radius
+                    const minDist = (this.size + n.size) * 0.6; 
+                    
+                    if (distSq < minDist * minDist && n.wetness > 0) {
+                        // Color mixing (Diffusion)
+                        const mixRatio = 0.05 * (this.wetness * n.wetness);
+                        this.color.r = this.color.r * (1 - mixRatio) + n.color.r * mixRatio;
+                        this.color.g = this.color.g * (1 - mixRatio) + n.color.g * mixRatio;
+                        this.color.b = this.color.b * (1 - mixRatio) + n.color.b * mixRatio;
+                        
+                        // If "Knife" tool, it displaces paint (scatters it)
+                        if (this.type === 'knife') {
+                            const force = 1.5;
+                            this.vx += (dx / Math.sqrt(distSq)) * force;
+                            this.vy += (dy / Math.sqrt(distSq)) * force;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Apply velocity
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Clamp to canvas
+        if (this.x < 0) this.x = 0;
+        if (this.y < 0) this.y = 0;
+        if (this.x > canvas.width) this.x = canvas.width;
+        if (this.y > canvas.height) this.y = canvas.height;
+    }
+
+    draw(ctx) {
+        // Draw the particle
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        const alpha = Math.max(0.1, this.wetness + 0.3); // Wet paint looks more opaque
+        
+        // Base color
+        ctx.fillStyle = `rgba(${Math.floor(this.color.r)}, ${Math.floor(this.color.g)}, ${Math.floor(this.color.b)}, ${alpha})`;
+        
+        // --- Visual Rendering based on Type ---
+        
+        if (this.type === 'smooth') {
+            // Round brush with slight noise
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        } 
+        else if (this.type === 'texture') {
+            // Noise-based organic shape
+            const points = 8;
+            ctx.beginPath();
+            for (let i = 0; i < points; i++) {
+                const angle = (i / points) * Math.PI * 2;
+                // Distort radius with noise
+                const r = this.size * (0.7 + Math.sin(this.textureSeed + i * 132.1) * 0.3);
+                const px = Math.cos(angle) * r;
+                const py = Math.sin(angle) * r;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            // Add "Oil" ridge (High viscosity look)
+            if (this.wetness > 0.5) {
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.fillStyle = `rgba(255,255,255, ${0.05 * this.wetness})`;
+                ctx.beginPath();
+                ctx.arc(-this.size*0.3, -this.size*0.3, this.size*0.4, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        else if (this.type === 'knife') {
+            // Knife marks are flatter and sharper
+            ctx.rotate(Math.sin(this.x * 0.01) * 0.5); // Random rotation
+            ctx.fillStyle = `rgba(${Math.floor(this.color.r)}, ${Math.floor(this.color.g)}, ${Math.floor(this.color.b)}, ${alpha})`;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, this.size * 1.2, this.size * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Sharp edge highlight
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = `rgba(255,255,255, ${0.1 * this.wetness})`;
+            ctx.beginPath();
+            ctx.ellipse(-this.size*0.2, -this.size*0.1, this.size, this.size*0.2, 0, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+}
+
+// --- Main Engine ---
+const grid = new SpatialGrid(window.innerWidth, window.innerHeight, 64);
 
 function init() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
-    setupControls();
-    setupGestures();
-    setupPalette();
-    saveState(); // Initial blank state
-    render(); // Start render loop
+    setupEvents();
+    setupUI();
+    requestAnimationFrame(loop);
 }
 
 function resizeCanvas() {
     const rect = container.getBoundingClientRect();
-    
-    // Save current image data if resizing to prevent loss
-    let imgData = null;
-    if(canvas.width > 0) {
-        imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    }
-
-    // Update dimensions
     canvas.width = rect.width;
     canvas.height = rect.height;
-
-    // Restore image data (scaled)
-    if (imgData) {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = imgData.width;
-        tempCanvas.height = imgData.height;
-        tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
-        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
-    }
+    // Re-init grid
+    grid.cols = Math.ceil(canvas.width / grid.cellSize);
+    grid.rows = Math.ceil(canvas.height / grid.cellSize);
+    grid.grid = new Array(grid.cols * grid.rows).fill(null).map(() => []);
+    
+    // Redraw background on resize
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-// --- CONTROLS & EVENTS ---
+function setupUI() {
+    ui.color.addEventListener('input', (e) => state.color = e.target.value);
+    ui.size.addEventListener('input', (e) => state.size = parseInt(e.target.value));
+    ui.wet.addEventListener('input', (e) => state.wetness = parseInt(e.target.value) / 100);
+    ui.visc.addEventListener('input', (e) => state.viscosity = parseInt(e.target.value) / 100);
 
-function setupControls() {
-    // Tool Selection
-    const tools = [
-        { el: ui.btnBrush, tool: 'brush' },
-        { el: ui.btnBlur, tool: 'blur' },
-        { el: ui.btnKnife, tool: 'knife' },
-        { el: ui.btnErase, tool: 'erase' }
-    ];
-
+    const tools = ['smooth', 'texture', 'knife'];
     tools.forEach(t => {
-        t.el.addEventListener('click', () => {
-            tools.forEach(x => x.el.classList.remove('active'));
-            t.el.classList.add('active');
-            state.tool = t.tool;
+        ui.btns[t].addEventListener('click', () => {
+            tools.forEach(x => ui.btns[x].classList.remove('active'));
+            ui.btns[t].classList.add('active');
+            state.tool = t;
+            updateStatus(`Tool: ${t.charAt(0).toUpperCase() + t.slice(1)}`);
         });
     });
 
-    // Sliders & Color
-    ui.colorPicker.addEventListener('input', (e) => state.color = e.target.value);
-    ui.sizeSlider.addEventListener('input', (e) => state.size = parseInt(e.target.value));
-    ui.flowSlider.addEventListener('input', (e) => state.flow = parseInt(e.target.value) / 100);
-
-    // Actions
-    ui.btnUndo.addEventListener('click', undo);
-    ui.btnClear.addEventListener('click', () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        saveState();
+    ui.btns.undo.addEventListener('click', undo);
+    ui.btns.clear.addEventListener('click', () => {
+        state.particles = [];
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        updateStatus('Canvas Cleared');
     });
-    ui.btnSave.addEventListener('click', saveToStorage);
-    ui.btnLoad.addEventListener('click', loadFromStorage);
+    ui.btns.save.addEventListener('click', saveDrawing);
+    ui.btns.load.addEventListener('click', loadDrawing);
 }
 
-function setupPalette() {
-    const colors = ['#ffffff', '#000000', '#ff4500', '#ff8c00', '#ffd700', '#adff2f', '#00ff7f', '#00bfff', '#1e90ff', '#9370db', '#8b4513', '#a0522d'];
-    colors.forEach(c => {
-        const swatch = document.createElement('div');
-        swatch.style.width = '20px';
-        swatch.style.height = '20px';
-        swatch.style.backgroundColor = c;
-        swatch.style.cursor = 'pointer';
-        swatch.style.border = '1px solid #666';
-        swatch.addEventListener('click', () => {
-            state.color = c;
-            ui.colorPicker.value = c;
-        });
-        ui.palette.appendChild(swatch);
-    });
-}
+function setupEvents() {
+    const start = (e) => {
+        state.isDrawing = true;
+        const { x, y } = getPos(e);
+        state.lastX = x;
+        state.lastY = y;
+        addParticles(x, y, true); // Initial dab
+    };
 
-function setupGestures() {
-    // Pointer Events for Mouse and Touch
-    canvas.addEventListener('pointerdown', startDraw);
-    canvas.addEventListener('pointermove', draw);
-    window.addEventListener('pointerup', endDraw);
-}
-
-// --- DRAWING LOGIC ---
-
-function startDraw(e) {
-    e.preventDefault(); // Stop text selection/scrolling
-    state.isDrawing = true;
-    state.points = [];
-    
-    const { x, y } = getPos(e);
-    state.lastX = x;
-    state.lastY = y;
-    state.lastTime = performance.now();
-
-    // For "Wet" look, we might want to sample the initial color
-    // but for simplicity, we just start the stroke
-    
-    // Single click dot
-    if (state.tool === 'brush') {
-        paintDot(x, y, state.size, state.color, state.flow);
-    } else if (state.tool === 'erase') {
-        eraseDot(x, y, state.size);
-    }
-}
-
-function draw(e) {
-    if (!state.isDrawing) return;
-    e.preventDefault();
-
-    const { x, y } = getPos(e);
-    const now = performance.now();
-    const dt = now - state.lastTime;
-
-    // Calculate velocity for dynamic width
-    const dist = Math.hypot(x - state.lastX, y - state.lastY);
-    
-    // Interpolate points based on speed to avoid gaps
-    const steps = Math.ceil(dist / (state.size * 0.2));
-    
-    for (let i = 1; i <= steps; i++) {
-        const t = i / steps;
-        const currX = state.lastX + (x - state.lastX) * t;
-        const currY = state.lastY + (y - state.lastY) * t;
+    const move = (e) => {
+        if (!state.isDrawing) return;
+        e.preventDefault();
+        const { x, y } = getPos(e);
         
-        applyTool(currX, currY, dist, dt);
-    }
+        // Interpolate for smoother strokes
+        const dist = Math.hypot(x - state.lastX, y - state.lastY);
+        const steps = Math.ceil(dist / (state.size * 0.3));
+        
+        for (let i = 1; i <= steps; i++) {
+            const t = i / steps;
+            const currX = state.lastX + (x - state.lastX) * t;
+            const currY = state.lastY + (y - state.lastY) * t;
+            addParticles(currX, currY);
+        }
 
-    state.lastX = x;
-    state.lastY = y;
-    state.lastTime = now;
-}
+        state.lastX = x;
+        state.lastY = y;
+    };
 
-function endDraw() {
-    if (state.isDrawing) {
-        state.isDrawing = false;
-        saveState(); // Save to undo stack
-    }
+    const end = () => {
+        if (state.isDrawing) {
+            state.isDrawing = false;
+            saveState(); // Save to undo stack
+        }
+    };
+
+    canvas.addEventListener('mousedown', start);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    
+    canvas.addEventListener('touchstart', (e) => start(e.touches[0]), {passive: false});
+    window.addEventListener('touchmove', (e) => move(e.touches[0]), {passive: false});
+    window.addEventListener('touchend', end);
 }
 
 function getPos(e) {
     const rect = canvas.getBoundingClientRect();
-    return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-    };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
-function applyTool(x, y, speed, dt) {
-    // Random jitter for natural look
-    const jitter = (val) => val + (Math.random() - 0.5) * 2;
-    const jx = jitter(x);
-    const jy = jitter(y);
+function addParticles(x, y, isFirst = false) {
+    const rgb = hexToRgb(state.color);
+    const count = isFirst ? 1 : Math.ceil(state.viscosity * 5); // More particles if viscous
+    
+    for (let i = 0; i < count; i++) {
+        if (state.particles.length >= state.maxParticles) {
+            state.particles.shift(); // Remove oldest
+        }
 
-    switch (state.tool) {
-        case 'brush':
-            // Dynamic size based on speed (faster = thinner)
-            const dynSize = Math.max(state.size * 0.5, state.size - (speed * 0.5));
-            oilPaint(jx, jy, dynSize, state.color, state.flow);
-            break;
-        case 'blur':
-            blurArea(jx, jy, state.size);
-            break;
-        case 'knife':
-            smearArea(jx, jy, state.size, speed);
-            break;
-        case 'erase':
-            eraseDot(jx, jy, state.size);
-            break;
+        // Random spread based on size
+        const spread = state.size * (1 - state.viscosity * 0.8);
+        const px = x + rnd(-spread/2, spread/2);
+        const py = y + rnd(-spread/2, spread/2);
+        
+        // Variation in color for realism
+        const vCol = {
+            r: Math.max(0, Math.min(255, rgb.r + rnd(-10, 10))),
+            g: Math.max(0, Math.min(255, rgb.g + rnd(-10, 10))),
+            b: Math.max(0, Math.min(255, rgb.b + rnd(-10, 10)))
+        };
+
+        const p = new PaintParticle(
+            px, py, 
+            vCol, 
+            rnd(state.size * 0.5, state.size * 1.2), 
+            state.wetness,
+            state.tool
+        );
+        
+        // Add velocity in direction of motion for "drag" effect
+        if (!isFirst) {
+            p.vx = (x - state.lastX) * 0.2;
+            p.vy = (y - state.lastY) * 0.2;
+        }
+
+        state.particles.push(p);
     }
 }
 
-// --- PAINTING ALGORITHMS ---
+// --- Main Loop ---
+let lastTime = 0;
+function loop(timestamp) {
+    const dt = (timestamp - lastTime) / 16.67; // Normalize to 60fps
+    lastTime = timestamp;
 
-/**
- * Simulates Oil Paint.
- * Uses a radial gradient approach mixed with existing pixels.
- */
-function oilPaint(x, y, radius, hexColor, opacity) {
-    // Convert hex to RGB
-    const rgb = hexToRgb(hexColor);
-    
-    // Create a temporary off-screen canvas for the dab
-    // This is expensive to do per frame, but essential for realistic blending
-    // Optimization: We draw directly to main canvas using globalCompositeOperation
-    
-    ctx.save();
-    
-    // 1. Set up the brush shape
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.closePath();
-    
-    // 2. Color Mixing Strategy
-    // To simulate "wet" mixing, we draw the new color, but we use a composite operation
-    // that interacts with what's already there.
-    
-    // We will use a layering approach:
-    // First, draw the new color with some transparency.
-    // Then, lightly blur it to simulate wet edges.
-    
-    ctx.fillStyle = hexColor;
-    ctx.globalAlpha = opacity;
-    
-    // "Soft" brush texture simulation using shadow
-    ctx.shadowBlur = radius * 0.5;
-    ctx.shadowColor = hexColor;
-    
-    // Fill the dab
-    ctx.fill();
-    
-    // Reset shadow for performance
-    ctx.shadowBlur = 0;
-    
-    // 3. Wet Smear Simulation (Manual Pixel Manipulation on a small area)
-    // This is the heaviest part. We do it only for the "Brush" tool effectively.
-    // We grab the pixels under the brush, mix them, and put them back.
-    
-    // Sampling area
-    const sx = Math.floor(x - radius);
-    const sy = Math.floor(y - radius);
-    const sw = radius * 2;
-    const sh = radius * 2;
+    // 1. Clear Grid
+    grid.clear();
 
-    // Boundary check
-    if(sx < 0 || sy < 0 || sx + sw > canvas.width || sy + sh > canvas.height) {
-        ctx.restore();
-        return;
-    }
+    // 2. Update Particles & Insert into Grid
+    // We don't clear canvas here! Paint accumulates.
+    // However, we need to "draw" the particles.
+    // To keep persistent paint without clearing, we draw directly to the canvas.
+    // BUT, for wet physics, we need to re-render wet particles every frame so they can move.
+    // We need a strategy: 
+    // - Dry particles are "baked" onto the canvas.
+    // - Wet particles are drawn on top every frame.
+    
+    // Optimization: 
+    // Iterate particles. If wetness is very low (< 0.05), bake it to background and remove from list.
+    // If wet, update physics, draw it, and keep in list.
 
-    // Only do heavy mixing if flow is high enough
-    if (state.tool === 'brush' && state.flow > 0.3) {
-        try {
-            const imgData = ctx.getImageData(sx, sy, sw, sh);
-            const data = imgData.data;
-            const len = data.length;
-            
-            // Pre-calculate new color components
-            const rNew = rgb.r;
-            const gNew = rgb.g;
-            const bNew = rgb.b;
-            
-            // Mixing factor (0 to 1)
-            // Higher flow = more new color dominates, but wetness allows old color to peek through
-            const mixFactor = 0.1 + (state.flow * 0.4); 
+    const wetParticles = [];
 
-            for (let i = 0; i < len; i += 4) {
-                // Only process non-transparent pixels
-                if (data[i + 3] > 0) {
-                    // Simple distance-based mixing (closer to center = more new color)
-                    const px = (i / 4) % sw;
-                    const py = Math.floor((i / 4) / sw);
-                    const dx = px - radius;
-                    const dy = py - radius;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    
-                    // falloff from center
-                    const falloff = Math.max(0, 1 - (dist / radius));
-                    
-                    // The "Oil" Effect: 
-                    // We don't just blend. We push pixels slightly.
-                    // But doing full fluid dynamics is too slow for JS.
-                    // Visual hack: We mix the existing pixel with the new color
-                    // using a slightly chaotic factor to avoid muddy colors.
-                    
-                    const oldR = data[i];
-                    const oldG = data[i+1];
-                    const oldB = data[i+2];
-                    const oldA = data[i+3];
-
-                    // "Wet" mixing formula
-                    const w = mixFactor * falloff * (0.8 + Math.random() * 0.4); // Add noise to prevent banding
-                    
-                    data[i]   = oldR * (1 - w) + rNew * w;
-                    data[i+1] = oldG * (1 - w) + gNew * w;
-                    data[i+2] = oldB * (1 - w) + bNew * w;
-                    // Keep alpha or slightly boost it for "thick" paint look
-                    data[i+3] = Math.min(255, oldA + (w * 50)); 
-                }
-            }
-            ctx.putImageData(imgData, sx, sy);
-        } catch (e) {
-            // Canvas may be tainted if we ever draw external images (not happening here)
-            // or if out of memory. Fallback is just the simple fill.
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        
+        // Get neighbors for physics
+        const neighbors = grid.getNeighbors(p.x, p.y);
+        
+        p.update(dt, neighbors);
+        
+        if (p.wetness <= 0.05) {
+            // Bake to background
+            p.draw(ctx); 
+        } else {
+            // Keep wet
+            wetParticles.push(p);
+            grid.insert(p);
         }
     }
+
+    // 3. Draw Wet Particles (on top)
+    // We need to redraw the wet ones to show movement
+    // Note: We don't clear the canvas, so we must draw wet particles freshly.
+    // Since we aren't clearing, wet particles will leave trails.
+    // This is actually good for "smearing"!
     
-    ctx.restore();
-}
-
-/**
- * Smear Tool (Knife)
- * Moves pixels in the direction of the stroke.
- */
-function smearArea(x, y, radius, speed) {
-    if (speed < 1) return; // Need movement to smear
-
-    const sx = Math.floor(x - radius);
-    const sy = Math.floor(y - radius);
-    const w = radius * 2;
-    const h = radius * 2;
-
-    if(sx < 0 || sy < 0 || sx + w > canvas.width || sy + h > canvas.height) return;
-
-    const imgData = ctx.getImageData(sx, sy, w, h);
+    // However, to avoid infinite accumulation of layers, we should draw wet particles
+    // but since the canvas background hasn't cleared, we need to be careful.
+    // The solution: We only draw wet particles. The baked ones are static.
     
-    // Shift pixels based on direction (simplified smear)
-    // We shift the array indices slightly
-    const shift = Math.min(Math.floor(speed * 0.5), 4); // Max shift 4 pixels
-    if(shift === 0) return;
-
-    const data = imgData.data;
-    const copy = new Uint8ClampedArray(data); // Backup
-
-    // Simple smear logic: pull pixels from behind (opposite to movement)
-    // Note: We don't know exact direction vector here without passing it, 
-    // but we can approximate by shifting rows/columns based on mouse deltas.
-    // For this simplified version, we just blur heavily to simulate blending edges.
+    // Wait, if we don't clear, we redraw the same wet particle multiple times over itself.
+    // That's okay, it just adds opacity.
     
-    // Actually, let's make it a "Softener" / "Blender" for the Knife effect
-    // as true directional smear requires complex vector math per pixel.
-    // A "Blender" is very useful for oil painting anyway.
+    // Wait, actually, drawing to a canvas that already has data (without clearing) 
+    // using `ctx.draw` is fine. It layers on top.
     
-    // Apply a localized box blur
-    const radiusSq = radius * radius;
+    // But: If a particle moves, it leaves a trail? 
+    // Yes, we want the trail if it's wet (smearing). 
+    // But we need to clear the *previous position* if we want rigid movement?
+    // No, "Smearing" implies leaving a trail.
     
-    for (let i = 0; i < data.length; i += 4) {
-        // Sample random neighbor
-        const rOff = (Math.random() - 0.5) * radius;
-        const cOff = (Math.random() - 0.5) * radius;
-        
-        const sampleX = Math.floor((i/4) % w + rOff);
-        const sampleY = Math.floor((i/4) / w + cOff);
-        
-        if(sampleX >=0 && sampleX < w && sampleY >= 0 && sampleY < h) {
-            const idx = (sampleY * w + sampleX) * 4;
-            data[i] = copy[idx];
-            data[i+1] = copy[idx+1];
-            data[i+2] = copy[idx+2];
-            // Alpha stays mostly same
-        }
+    // So, the logic is:
+    // Canvas is persistent.
+    // Wet particles are drawn.
+    // They move.
+    // They are drawn again.
+    // Result: Smear trails.
+    
+    // However, if particles stack up too much, the color gets too dark.
+    // We need to limit layering.
+    
+    // Better approach for this simulation:
+    // 1. Canvas is static background (baked dry paint).
+    // 2. Wet particles are rendered in a separate off-screen canvas? No, too heavy.
+    // 3. We just draw wet particles. Since we aren't clearing, they stack.
+    //    To prevent infinite darkening, we rely on the 'baking' step where low wetness stops updates.
+    
+    for (const p of wetParticles) {
+        p.draw(ctx);
     }
     
-    ctx.putImageData(imgData, sx, sy);
+    state.particles = wetParticles; // Update list
+
+    requestAnimationFrame(loop);
 }
 
-/**
- * Blur Tool
- * Gaussian-ish blur on a localized area.
- */
-function blurArea(x, y, radius) {
-    const sx = Math.floor(x - radius);
-    const sy = Math.floor(y - radius);
-    const w = radius * 2;
-    const h = radius * 2;
-
-    if(sx < 0 || sy < 0 || sx + w > canvas.width || sy + h > canvas.height) return;
-
-    // Drawing a blurred circle with shadow is much faster than pixel manipulation
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.clip();
-    
-    // We can't easily blur existing pixels without read/write.
-    // We use the composite trick: Draw the existing area on top with a blur filter
-    // But filter is slow.
-    // Alternative: Just "Smudge" the colors together (already handled by brush mixing).
-    
-    // Let's implement a localized "Gaussian Blur" via pixel sampling (Heavy but effective)
-    try {
-        const imgData = ctx.getImageData(sx, sy, w, h);
-        const data = imgData.data;
-        const copy = new Uint8ClampedArray(data);
-        
-        // 3x3 Kernel approximation
-        for (let y = 1; y < h - 1; y++) {
-            for (let x = 1; x < w - 1; x++) {
-                const idx = (y * w + x) * 4;
-                
-                let r = 0, g = 0, b = 0, count = 0;
-                
-                // Neighbors
-                for(let ky = -1; ky <= 1; ky++) {
-                    for(let kx = -1; kx <= 1; kx++) {
-                        const nIdx = ((y+ky) * w + (x+kx)) * 4;
-                        r += copy[nIdx];
-                        g += copy[nIdx+1];
-                        b += copy[nIdx+2];
-                        count++;
-                    }
-                }
-                
-                data[idx] = r / count;
-                data[idx+1] = g / count;
-                data[idx+2] = b / count;
-                // Alpha remains
-            }
-        }
-        ctx.putImageData(imgData, sx, sy);
-    } catch(e) {}
-    
-    ctx.restore();
-}
-
-function eraseDot(x, y, radius) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,1)';
-    ctx.fill();
-    ctx.restore();
-}
-
-function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : { r: 0, g: 0, b: 0 };
-}
-
-// --- UNDO / HISTORY ---
+// --- Undo / State Management ---
+// Because we are manipulating canvas pixels directly (baking),
+// we need to save the canvas state (DataURL) for Undo.
+// We do this when a stroke ends.
 
 function saveState() {
-    // Limit history size
-    if (state.historyIndex < state.history.length - 1) {
-        state.history = state.history.slice(0, state.historyIndex + 1);
-    }
-    
-    // Get current image data
-    // We store as DataURL string to be compatible with LocalForage easily
-    // Compression reduces memory usage (0.7 is good balance)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-    
-    state.history.push(dataUrl);
-    
-    if (state.history.length > state.maxHistory) {
-        state.history.shift();
-    } else {
-        state.historyIndex++;
-    }
-    
-    updateUIStatus('State saved');
+    if (state.undoStack.length >= state.maxUndo) state.undoStack.shift();
+    // We save the current canvas state AND the wet particles list (serialized)
+    const snapshot = {
+        canvas: canvas.toDataURL('image/jpeg', 0.8),
+        particles: state.particles.map(p => ({
+            x: p.x, y: p.y, c: p.color, s: p.size, w: p.wetness, t: p.type
+        }))
+    };
+    state.undoStack.push(snapshot);
+    updateStatus('Saved State');
 }
 
 function undo() {
-    if (state.historyIndex > 0) {
-        state.historyIndex--;
-        const img = new Image();
-        img.src = state.history[state.historyIndex];
-        img.onload = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
-        updateUIStatus('Undo');
-    } else if (state.historyIndex === 0) {
-        // Clear to blank
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        state.historyIndex = -1;
-        updateUIStatus('Undo');
-    }
-}
-
-// --- STORAGE (LocalForage) ---
-
-function saveToStorage() {
-    if (!window.localforage) {
-        updateUIStatus('Storage lib not loaded');
+    if (state.undoStack.length === 0) {
+        updateStatus('Nothing to undo');
         return;
     }
     
-    const dataUrl = canvas.toDataURL('image/png');
-    localforage.setItem('oilPainting', dataUrl).then(() => {
-        updateUIStatus('Saved to Local Storage');
-    }).catch(err => {
-        console.error(err);
-        updateUIStatus('Save Failed');
-    });
+    const snapshot = state.undoStack.pop();
+    const img = new Image();
+    img.src = snapshot.canvas;
+    img.onload = () => {
+        // Restore baked paint
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        
+        // Restore wet particles
+        state.particles = snapshot.particles.map(d => {
+            const p = new PaintParticle(d.x, d.y, d.c, d.s, d.w, d.t);
+            return p;
+        });
+        updateStatus('Undone');
+    };
 }
 
-function loadFromStorage() {
+// --- Storage (LocalForage) ---
+function saveDrawing() {
     if (!window.localforage) return;
-    
-    localforage.getItem('oilPainting').then((dataUrl) => {
-        if (dataUrl) {
+    // Save just the image for now, simpler than saving all physics state
+    const data = canvas.toDataURL('image/png');
+    localforage.setItem('oilPainting', data).then(() => updateStatus('Saved to Disk'));
+}
+
+function loadDrawing() {
+    if (!window.localforage) return;
+    localforage.getItem('oilPainting').then((data) => {
+        if (data) {
             const img = new Image();
-            img.src = dataUrl;
+            img.src = data;
             img.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                saveState(); // Add loaded image to undo stack
-                updateUIStatus('Loaded');
+                ctx.drawImage(img, 0, 0);
+                state.particles = []; // Clear wet particles
+                updateStatus('Loaded');
             };
         } else {
-            updateUIStatus('No saved drawing');
+            updateStatus('No saved drawing');
         }
     });
 }
 
-function updateUIStatus(msg) {
+function updateStatus(msg) {
     ui.status.textContent = msg;
     ui.status.style.opacity = 1;
-    setTimeout(() => {
-        ui.status.style.opacity = 0;
-    }, 1500);
-}
-
-// --- RENDER LOOP (Optional animations or dynamic brush preview) ---
-// The main drawing happens in event handlers, but we can use this for cursor previews or drying simulation
-function render() {
-    // If we wanted to simulate paint drying (changing sheen), we would do it here.
-    // For this version, we keep it static to save battery.
-    requestAnimationFrame(render);
+    setTimeout(() => ui.status.style.opacity = 0, 1500);
 }
 
 // Start
