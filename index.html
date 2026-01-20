@@ -251,6 +251,8 @@
         let currentColor = '#000000';
         let currentSize = 10;
         let isEraser = false;
+        let lastX = 0;
+        let lastY = 0;
         
         // History for undo/redo
         const maxHistory = 50;
@@ -331,38 +333,38 @@
         }
         
         // Draw with oil painting effect
-        function draw(x, y, prevX, prevY) {
-            if (!isDrawing) return;
+        function draw(x, y) {
+            // Calculate distance between points
+            const distance = Math.sqrt(Math.pow(x - lastX, 2) + Math.pow(y - lastY, 2));
+            const steps = Math.max(1, Math.ceil(distance / 2));
             
-            const distance = Math.sqrt(Math.pow(x - prevX, 2) + Math.pow(y - prevY, 2));
-            const steps = Math.ceil(distance / 2);
-            
-            for (let i = 0; i < steps; i++) {
-                const t = i / steps;
-                const px = prevX + (x - prevX) * t;
-                const py = prevY + (y - prevY) * t;
-                
-                // Create oil painting effect with multiple semi-transparent strokes
-                const layers = 5;
-                for (let j = 0; j < layers; j++) {
-                    const offsetX = (Math.random() - 0.5) * currentSize * 0.2;
-                    const offsetY = (Math.random() - 0.5) * currentSize * 0.2;
-                    const size = currentSize * (0.8 + Math.random() * 0.4);
-                    const opacity = 0.1 + Math.random() * 0.2;
+            // Draw multiple layers to create oil painting effect
+            const layers = 3;
+            for (let layer = 0; layer < layers; layer++) {
+                for (let i = 0; i < steps; i++) {
+                    const t = i / steps;
+                    const px = lastX + (x - lastX) * t;
+                    const py = lastY + (y - lastY) * t;
                     
-                    if (isEraser) {
-                        // Eraser effect
-                        ctx.globalCompositeOperation = 'destination-out';
-                        brushes[currentBrush](px + offsetX, py + offsetY, size, '#FFFFFF', opacity);
-                    } else {
-                        // Paint effect with wet blending
+                    // Add some randomness for texture
+                    const offsetX = (Math.random() - 0.5) * currentSize * 0.3;
+                    const offsetY = (Math.random() - 0.5) * currentSize * 0.3;
+                    const size = currentSize * (0.7 + Math.random() * 0.3);
+                    const opacity = 0.2 + Math.random() * 0.3;
+                    
+                    // Set composite operation for oil mixing effect
+                    if (!isEraser) {
                         ctx.globalCompositeOperation = 'multiply';
-                        brushes[currentBrush](px + offsetX, py + offsetY, size, currentColor, opacity);
+                    } else {
+                        ctx.globalCompositeOperation = 'destination-out';
                     }
+                    
+                    // Draw brush stroke
+                    brushes[currentBrush](px + offsetX, py + offsetY, size, currentColor, opacity);
                 }
             }
             
-            // Restore composite operation
+            // Reset composite operation
             ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = 1;
         }
@@ -381,7 +383,7 @@
             if (!isDrawing) return;
             
             const pos = getPosition(e);
-            draw(pos.x, pos.y, lastX, lastY);
+            draw(pos.x, pos.y);
             lastX = pos.x;
             lastY = pos.y;
         }
@@ -395,7 +397,6 @@
         }
         
         // Mouse events
-        let lastX, lastY;
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', drawAction);
         canvas.addEventListener('mouseup', stopDrawing);
@@ -445,6 +446,7 @@
         const clearBtn = document.getElementById('clearBtn');
         clearBtn.addEventListener('click', function() {
             if (confirm('Are you sure you want to clear the canvas?')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 saveState();
