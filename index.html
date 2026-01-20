@@ -3,491 +3,775 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Impasto - Oil Paint Simulator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>HTML5 Oil Painting Simulator</title>
     <style>
         :root {
-            --panel-bg: rgba(255, 255, 255, 0.9);
-            --accent: #d97706;
+            --bg-color: #1a1a1a;
+            --panel-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent: #ff9800;
         }
-        body {
+
+        body, html {
             margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            background-color: #1a1a1a;
-            font-family: system-ui, -apple-system, sans-serif;
-            touch-action: none;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none; /* Prevents scrolling on mobile */
         }
-        #canvas-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
+
+        /* Layout */
+        #app {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            background-color: var(--panel-bg);
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
             align-items: center;
-            cursor: crosshair;
-        }
-        canvas {
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            background-image: url('https://www.transparenttextures.com/patterns/canvas-paper.png');
-            background-color: #f3f0e9;
-            touch-action: none;
-        }
-        .ui-panel {
-            position: absolute;
-            background: var(--panel-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #444;
             z-index: 10;
         }
-        .brush-preview {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid #ccc;
-            margin: 0 auto;
+
+        .group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            padding-right: 10px;
+            border-right: 1px solid #444;
         }
-        .color-swatch {
+        .group:last-child { border-right: none; }
+
+        /* Controls */
+        button {
+            background: #444;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #555; }
+        button.active { background: var(--accent); color: #000; font-weight: bold; }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
             width: 32px;
             height: 32px;
-            border-radius: 6px;
             cursor: pointer;
-            border: 2px solid transparent;
-            transition: transform 0.1s;
+            background: none;
         }
-        .color-swatch:active { transform: scale(0.9); }
-        .active-tool { border-color: var(--accent) !important; background: #fef3c7; }
-        
-        /* Custom scrollbar for gallery */
-        #gallery::-webkit-scrollbar { height: 4px; }
-        #gallery::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
 
-        @media (max-width: 640px) {
-            .ui-panel { padding: 8px; }
-            .mobile-hide { display: none; }
+        input[type="range"] {
+            width: 80px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        /* Canvas Area */
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background-color: #fff; /* Canvas paper color */
+            background-image: 
+                linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* HUD Messages */
+        #status {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            #toolbar { gap: 5px; padding: 5px; overflow-x: auto; flex-wrap: nowrap; }
+            .group { flex-shrink: 0; }
+            label { display: none; }
+            input[type="range"] { width: 60px; }
         }
     </style>
 </head>
 <body>
 
-<div id="canvas-container">
-    <canvas id="mainCanvas"></canvas>
-</div>
+<div id="app">
+    <div id="toolbar">
+        <div class="group">
+            <button id="btn-brush" class="active">Brush</button>
+            <button id="btn-blur">Blur</button>
+            <button id="btn-knife">Knife</button>
+            <button id="btn-erase">Erase</button>
+        </div>
 
-<!-- Top Controls -->
-<div class="ui-panel top-4 left-4 right-4 flex justify-between items-center">
-    <div class="flex gap-2">
-        <button id="undoBtn" class="p-2 hover:bg-gray-200 rounded" title="Undo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6"/></svg>
-        </button>
-        <button id="redoBtn" class="p-2 hover:bg-gray-200 rounded" title="Redo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10H11a8 8 0 0 0-8 8v2m18-10l-6 6m6-6l-6-6"/></svg>
-        </button>
-    </div>
-    
-    <div class="flex gap-4 items-center">
-        <span class="text-xs font-bold uppercase text-gray-500 mobile-hide">Impasto Pro</span>
-        <div class="flex gap-1">
-            <button id="saveBtn" class="bg-amber-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-amber-700 transition">SAVE</button>
-            <button id="clearBtn" class="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-300 transition">CLEAR</button>
+        <div class="group">
+            <label>Color</label>
+            <input type="color" id="color-picker" value="#ff4500">
+            <div id="palette" style="display:flex; gap:2px;">
+                <!-- Swatches generated by JS -->
+            </div>
+        </div>
+
+        <div class="group">
+            <label>Size</label>
+            <input type="range" id="size-slider" min="5" max="100" value="30">
+        </div>
+
+        <div class="group">
+            <label>Load</label>
+            <input type="range" id="flow-slider" min="1" max="100" value="50" title="Paint Load">
+        </div>
+
+        <div class="group">
+            <button id="btn-undo">Undo</button>
+            <button id="btn-clear">Clear</button>
+            <button id="btn-save">Save</button>
+            <button id="btn-load">Load</button>
         </div>
     </div>
+
+    <div id="canvas-container">
+        <canvas id="art-canvas"></canvas>
+    </div>
+
+    <div id="status">Saved!</div>
 </div>
 
-<!-- Sidebar Controls -->
-<div class="ui-panel left-4 top-24 bottom-24 w-16 flex flex-col items-center gap-6 overflow-y-auto">
-    <div class="flex flex-col gap-3 items-center">
-        <button data-tool="round" class="tool-btn p-2 rounded-lg active-tool" title="Round Brush">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
-        </button>
-        <button data-tool="flat" class="tool-btn p-2 rounded-lg" title="Flat Brush">
-            <rect x="6" y="6" width="12" height="12" fill="currentColor"/>
-        </button>
-        <button data-tool="knife" class="tool-btn p-2 rounded-lg" title="Palette Knife">
-            <path d="M18 4l3 3-12 12-4-1-1-4 12-12z" fill="currentColor"/>
-        </button>
-        <button data-tool="erase" class="tool-btn p-2 rounded-lg" title="Eraser">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z"/></svg>
-        </button>
-    </div>
-
-    <div class="h-px w-full bg-gray-200"></div>
-
-    <div class="flex flex-col gap-2">
-        <div class="color-swatch active-color" style="background-color: #2c3e50;" data-color="#2c3e50"></div>
-        <div class="color-swatch" style="background-color: #e74c3c;" data-color="#e74c3c"></div>
-        <div class="color-swatch" style="background-color: #f1c40f;" data-color="#f1c40f"></div>
-        <div class="color-swatch" style="background-color: #27ae60;" data-color="#27ae60"></div>
-        <div class="color-swatch" style="background-color: #3498db;" data-color="#3498db"></div>
-        <div class="color-swatch" style="background-color: #ffffff; border: 1px solid #ddd;" data-color="#ffffff"></div>
-        <input type="color" id="customColor" class="w-8 h-8 cursor-pointer rounded">
-    </div>
-
-    <div class="h-px w-full bg-gray-200"></div>
-
-    <div class="flex flex-col items-center gap-1 w-full">
-        <label class="text-[10px] font-bold">SIZE</label>
-        <input type="range" id="sizeSlider" min="5" max="80" value="25" class="h-24 w-1 flex-1 accent-amber-600" style="appearance: slider-vertical;">
-    </div>
-</div>
-
-<!-- Bottom Gallery -->
-<div id="gallery-container" class="ui-panel bottom-4 left-4 right-4 h-24 hidden">
-    <div class="flex justify-between items-center mb-1">
-        <h3 class="text-[10px] font-bold uppercase text-gray-500">My Gallery</h3>
-        <button id="closeGallery" class="text-gray-400 hover:text-black">&times;</button>
-    </div>
-    <div id="gallery" class="flex gap-4 overflow-x-auto pb-2 h-16">
-        <!-- Saved items go here -->
-    </div>
-</div>
-
-<!-- Notification -->
-<div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-2 rounded-full opacity-0 transition-opacity pointer-events-none z-50">
-    Saved to Local Storage
-</div>
+<!-- Load LocalForage from CDN (Required for saving) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
 <script>
 /**
- * Oil Paint Simulation Logic
- * Uses a secondary canvas to track "wetness" and surface pigment for mixing.
+ * OIL PAINT SIMULATION ENGINE
+ * 
+ * Core Logic:
+ * 1. Rendering is done on a single <canvas> element.
+ * 2. The simulation uses a particle approach where "dabs" of paint are applied 
+ *    based on pointer movement speed.
+ * 3. "Wetness" is simulated by mixing the brush color with the existing canvas 
+ *    pixel data (destination-in / source-over composites).
+ * 4. For the "Oil" look, we apply slight Gaussian blurs to dabs and use 
+ *    randomized offsets to prevent robotic lines.
  */
 
-const canvas = document.getElementById('mainCanvas');
+const canvas = document.getElementById('art-canvas');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
-const toast = document.getElementById('toast');
+const container = document.getElementById('canvas-container');
 
-// Settings
-let state = {
-    isPainting: false,
-    tool: 'round',
-    color: '#2c3e50',
-    size: 25,
-    opacity: 0.8,
-    history: [],
-    redoStack: [],
-    lastPos: { x: 0, y: 0 },
-    pressure: 1.0,
-    mixRate: 0.15 // How much background color mixes into brush
+// State
+const state = {
+    isDrawing: false,
+    tool: 'brush', // brush, blur, knife, erase
+    color: '#ff4500',
+    size: 30,
+    flow: 0.5, // 0.0 to 1.0
+    lastX: 0,
+    lastY: 0,
+    lastTime: 0,
+    points: [], // For smoothing
+    history: [], // Undo stack
+    historyIndex: -1,
+    maxHistory: 15
 };
 
-// Initialize
+// Configuration
+const CONFIG = {
+    brushHardness: 0.2, // Softness of brush edges
+    colorMixing: 0.15, // How aggressively colors blend (0-1)
+    smearAmount: 2, // Smear distance
+    samplingStep: 4 // Pixel sampling step for performance (lower = better quality, slower)
+};
+
+// UI Elements
+const ui = {
+    btnBrush: document.getElementById('btn-brush'),
+    btnBlur: document.getElementById('btn-blur'),
+    btnKnife: document.getElementById('btn-knife'),
+    btnErase: document.getElementById('btn-erase'),
+    colorPicker: document.getElementById('color-picker'),
+    sizeSlider: document.getElementById('size-slider'),
+    flowSlider: document.getElementById('flow-slider'),
+    palette: document.getElementById('palette'),
+    btnUndo: document.getElementById('btn-undo'),
+    btnClear: document.getElementById('btn-clear'),
+    btnSave: document.getElementById('btn-save'),
+    btnLoad: document.getElementById('btn-load'),
+    status: document.getElementById('status')
+};
+
+// --- INITIALIZATION ---
+
 function init() {
-    resize();
-    setupEventListeners();
-    loadGallery();
-    
-    // Fill initial canvas
-    ctx.fillStyle = '#f3f0e9';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    saveState();
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    setupControls();
+    setupGestures();
+    setupPalette();
+    saveState(); // Initial blank state
+    render(); // Start render loop
 }
 
-function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.parentElement.getBoundingClientRect();
+function resizeCanvas() {
+    const rect = container.getBoundingClientRect();
     
-    // Save current content
-    const tempData = canvas.toDataURL();
-    
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-    ctx.scale(dpr, dpr);
-    
-    // Restore content
-    const img = new Image();
-    img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
-    img.src = tempData;
-}
-
-function showToast(msg) {
-    toast.innerText = msg;
-    toast.style.opacity = '1';
-    setTimeout(() => toast.style.opacity = '0', 2000);
-}
-
-// Color Utility: Mixes two hex colors
-function mixColors(color1, color2, weight) {
-    const c1 = hexToRgb(color1);
-    const c2 = hexToRgb(color2);
-    if (!c1 || !c2) return color1;
-
-    const r = Math.round(c1.r * (1 - weight) + c2.r * weight);
-    const g = Math.round(c1.g * (1 - weight) + c2.g * weight);
-    const b = Math.round(c1.b * (1 - weight) + c2.b * weight);
-    return `rgb(${r},${g},${b})`;
-}
-
-function hexToRgb(hex) {
-    if (hex.startsWith('rgb')) {
-        const parts = hex.match(/\d+/g);
-        return { r: parseInt(parts[0]), g: parseInt(parts[1]), b: parseInt(parts[2]) };
+    // Save current image data if resizing to prevent loss
+    let imgData = null;
+    if(canvas.width > 0) {
+        imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     }
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
+
+    // Update dimensions
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    // Restore image data (scaled)
+    if (imgData) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imgData.width;
+        tempCanvas.height = imgData.height;
+        tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
+        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+    }
 }
 
-// Painting Logic
-function startPainting(e) {
-    state.isPainting = true;
-    const pos = getPos(e);
-    state.lastPos = pos;
-    paint(e);
-}
+// --- CONTROLS & EVENTS ---
 
-function stopPainting() {
-    if (state.isPainting) {
-        state.isPainting = false;
+function setupControls() {
+    // Tool Selection
+    const tools = [
+        { el: ui.btnBrush, tool: 'brush' },
+        { el: ui.btnBlur, tool: 'blur' },
+        { el: ui.btnKnife, tool: 'knife' },
+        { el: ui.btnErase, tool: 'erase' }
+    ];
+
+    tools.forEach(t => {
+        t.el.addEventListener('click', () => {
+            tools.forEach(x => x.el.classList.remove('active'));
+            t.el.classList.add('active');
+            state.tool = t.tool;
+        });
+    });
+
+    // Sliders & Color
+    ui.colorPicker.addEventListener('input', (e) => state.color = e.target.value);
+    ui.sizeSlider.addEventListener('input', (e) => state.size = parseInt(e.target.value));
+    ui.flowSlider.addEventListener('input', (e) => state.flow = parseInt(e.target.value) / 100);
+
+    // Actions
+    ui.btnUndo.addEventListener('click', undo);
+    ui.btnClear.addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         saveState();
+    });
+    ui.btnSave.addEventListener('click', saveToStorage);
+    ui.btnLoad.addEventListener('click', loadFromStorage);
+}
+
+function setupPalette() {
+    const colors = ['#ffffff', '#000000', '#ff4500', '#ff8c00', '#ffd700', '#adff2f', '#00ff7f', '#00bfff', '#1e90ff', '#9370db', '#8b4513', '#a0522d'];
+    colors.forEach(c => {
+        const swatch = document.createElement('div');
+        swatch.style.width = '20px';
+        swatch.style.height = '20px';
+        swatch.style.backgroundColor = c;
+        swatch.style.cursor = 'pointer';
+        swatch.style.border = '1px solid #666';
+        swatch.addEventListener('click', () => {
+            state.color = c;
+            ui.colorPicker.value = c;
+        });
+        ui.palette.appendChild(swatch);
+    });
+}
+
+function setupGestures() {
+    // Pointer Events for Mouse and Touch
+    canvas.addEventListener('pointerdown', startDraw);
+    canvas.addEventListener('pointermove', draw);
+    window.addEventListener('pointerup', endDraw);
+}
+
+// --- DRAWING LOGIC ---
+
+function startDraw(e) {
+    e.preventDefault(); // Stop text selection/scrolling
+    state.isDrawing = true;
+    state.points = [];
+    
+    const { x, y } = getPos(e);
+    state.lastX = x;
+    state.lastY = y;
+    state.lastTime = performance.now();
+
+    // For "Wet" look, we might want to sample the initial color
+    // but for simplicity, we just start the stroke
+    
+    // Single click dot
+    if (state.tool === 'brush') {
+        paintDot(x, y, state.size, state.color, state.flow);
+    } else if (state.tool === 'erase') {
+        eraseDot(x, y, state.size);
+    }
+}
+
+function draw(e) {
+    if (!state.isDrawing) return;
+    e.preventDefault();
+
+    const { x, y } = getPos(e);
+    const now = performance.now();
+    const dt = now - state.lastTime;
+
+    // Calculate velocity for dynamic width
+    const dist = Math.hypot(x - state.lastX, y - state.lastY);
+    
+    // Interpolate points based on speed to avoid gaps
+    const steps = Math.ceil(dist / (state.size * 0.2));
+    
+    for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const currX = state.lastX + (x - state.lastX) * t;
+        const currY = state.lastY + (y - state.lastY) * t;
+        
+        applyTool(currX, currY, dist, dt);
+    }
+
+    state.lastX = x;
+    state.lastY = y;
+    state.lastTime = now;
+}
+
+function endDraw() {
+    if (state.isDrawing) {
+        state.isDrawing = false;
+        saveState(); // Save to undo stack
     }
 }
 
 function getPos(e) {
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
     };
 }
 
-function paint(e) {
-    if (!state.isPainting) return;
-    const pos = getPos(e);
-    
-    // Sample the color currently under the brush for mixing simulation
-    const sampleX = Math.floor(pos.x * (window.devicePixelRatio || 1));
-    const sampleY = Math.floor(pos.y * (window.devicePixelRatio || 1));
-    try {
-        const pixel = ctx.getImageData(sampleX, sampleY, 1, 1).data;
-        const bgColor = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
-        
-        // Dynamic mixing: the brush "picks up" some of the underlying paint
-        const drawColor = state.tool === 'erase' ? '#f3f0e9' : mixColors(state.color, bgColor, state.mixRate);
-        
-        drawBrush(state.lastPos.x, state.lastPos.y, pos.x, pos.y, drawColor);
-    } catch(err) {}
+function applyTool(x, y, speed, dt) {
+    // Random jitter for natural look
+    const jitter = (val) => val + (Math.random() - 0.5) * 2;
+    const jx = jitter(x);
+    const jy = jitter(y);
 
-    state.lastPos = pos;
+    switch (state.tool) {
+        case 'brush':
+            // Dynamic size based on speed (faster = thinner)
+            const dynSize = Math.max(state.size * 0.5, state.size - (speed * 0.5));
+            oilPaint(jx, jy, dynSize, state.color, state.flow);
+            break;
+        case 'blur':
+            blurArea(jx, jy, state.size);
+            break;
+        case 'knife':
+            smearArea(jx, jy, state.size, speed);
+            break;
+        case 'erase':
+            eraseDot(jx, jy, state.size);
+            break;
+    }
 }
 
-function drawBrush(x1, y1, x2, y2, color) {
-    const distance = Math.hypot(x2 - x1, y2 - y1);
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const steps = Math.max(1, Math.floor(distance / 2));
+// --- PAINTING ALGORITHMS ---
 
+/**
+ * Simulates Oil Paint.
+ * Uses a radial gradient approach mixed with existing pixels.
+ */
+function oilPaint(x, y, radius, hexColor, opacity) {
+    // Convert hex to RGB
+    const rgb = hexToRgb(hexColor);
+    
+    // Create a temporary off-screen canvas for the dab
+    // This is expensive to do per frame, but essential for realistic blending
+    // Optimization: We draw directly to main canvas using globalCompositeOperation
+    
     ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    
+    // 1. Set up the brush shape
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.closePath();
+    
+    // 2. Color Mixing Strategy
+    // To simulate "wet" mixing, we draw the new color, but we use a composite operation
+    // that interacts with what's already there.
+    
+    // We will use a layering approach:
+    // First, draw the new color with some transparency.
+    // Then, lightly blur it to simulate wet edges.
+    
+    ctx.fillStyle = hexColor;
+    ctx.globalAlpha = opacity;
+    
+    // "Soft" brush texture simulation using shadow
+    ctx.shadowBlur = radius * 0.5;
+    ctx.shadowColor = hexColor;
+    
+    // Fill the dab
+    ctx.fill();
+    
+    // Reset shadow for performance
+    ctx.shadowBlur = 0;
+    
+    // 3. Wet Smear Simulation (Manual Pixel Manipulation on a small area)
+    // This is the heaviest part. We do it only for the "Brush" tool effectively.
+    // We grab the pixels under the brush, mix them, and put them back.
+    
+    // Sampling area
+    const sx = Math.floor(x - radius);
+    const sy = Math.floor(y - radius);
+    const sw = radius * 2;
+    const sh = radius * 2;
 
-    for (let i = 0; i <= steps; i++) {
-        const x = x1 + (Math.cos(angle) * (distance / steps) * i);
-        const y = y1 + (Math.sin(angle) * (distance / steps) * i);
-        
-        if (state.tool === 'round') {
-            const grad = ctx.createRadialGradient(x, y, 0, x, y, state.size / 2);
-            grad.addColorStop(0, color);
-            grad.addColorStop(0.8, color);
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(x, y, state.size / 2, 0, Math.PI * 2);
-            ctx.fill();
+    // Boundary check
+    if(sx < 0 || sy < 0 || sx + sw > canvas.width || sy + sh > canvas.height) {
+        ctx.restore();
+        return;
+    }
+
+    // Only do heavy mixing if flow is high enough
+    if (state.tool === 'brush' && state.flow > 0.3) {
+        try {
+            const imgData = ctx.getImageData(sx, sy, sw, sh);
+            const data = imgData.data;
+            const len = data.length;
             
-            // Texture overlay (Bristles)
-            ctx.globalAlpha = 0.1;
-            ctx.strokeStyle = '#000';
-            for(let b=0; b<5; b++) {
-                ctx.beginPath();
-                ctx.moveTo(x - 5, y - 5 + b*2);
-                ctx.lineTo(x + 5, y - 5 + b*2);
-                ctx.stroke();
+            // Pre-calculate new color components
+            const rNew = rgb.r;
+            const gNew = rgb.g;
+            const bNew = rgb.b;
+            
+            // Mixing factor (0 to 1)
+            // Higher flow = more new color dominates, but wetness allows old color to peek through
+            const mixFactor = 0.1 + (state.flow * 0.4); 
+
+            for (let i = 0; i < len; i += 4) {
+                // Only process non-transparent pixels
+                if (data[i + 3] > 0) {
+                    // Simple distance-based mixing (closer to center = more new color)
+                    const px = (i / 4) % sw;
+                    const py = Math.floor((i / 4) / sw);
+                    const dx = px - radius;
+                    const dy = py - radius;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    // falloff from center
+                    const falloff = Math.max(0, 1 - (dist / radius));
+                    
+                    // The "Oil" Effect: 
+                    // We don't just blend. We push pixels slightly.
+                    // But doing full fluid dynamics is too slow for JS.
+                    // Visual hack: We mix the existing pixel with the new color
+                    // using a slightly chaotic factor to avoid muddy colors.
+                    
+                    const oldR = data[i];
+                    const oldG = data[i+1];
+                    const oldB = data[i+2];
+                    const oldA = data[i+3];
+
+                    // "Wet" mixing formula
+                    const w = mixFactor * falloff * (0.8 + Math.random() * 0.4); // Add noise to prevent banding
+                    
+                    data[i]   = oldR * (1 - w) + rNew * w;
+                    data[i+1] = oldG * (1 - w) + gNew * w;
+                    data[i+2] = oldB * (1 - w) + bNew * w;
+                    // Keep alpha or slightly boost it for "thick" paint look
+                    data[i+3] = Math.min(255, oldA + (w * 50)); 
+                }
             }
-            ctx.globalAlpha = 1.0;
-
-        } else if (state.tool === 'flat') {
-            ctx.fillStyle = color;
-            ctx.translate(x, y);
-            ctx.rotate(angle);
-            ctx.fillRect(-state.size/2, -state.size/4, state.size, state.size/2);
-            // Simulate thickness
-            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-            ctx.strokeRect(-state.size/2, -state.size/4, state.size, 1);
-            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
-
-        } else if (state.tool === 'knife') {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(x, y - state.size/2);
-            ctx.lineTo(x + state.size, y);
-            ctx.lineTo(x, y + state.size/2);
-            ctx.closePath();
-            ctx.fill();
-            // Edge highlight
-            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        } else if (state.tool === 'erase') {
-            ctx.fillStyle = '#f3f0e9';
-            ctx.beginPath();
-            ctx.arc(x, y, state.size / 2, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.putImageData(imgData, sx, sy);
+        } catch (e) {
+            // Canvas may be tainted if we ever draw external images (not happening here)
+            // or if out of memory. Fallback is just the simple fill.
         }
     }
+    
     ctx.restore();
 }
 
-// Undo/Redo System
+/**
+ * Smear Tool (Knife)
+ * Moves pixels in the direction of the stroke.
+ */
+function smearArea(x, y, radius, speed) {
+    if (speed < 1) return; // Need movement to smear
+
+    const sx = Math.floor(x - radius);
+    const sy = Math.floor(y - radius);
+    const w = radius * 2;
+    const h = radius * 2;
+
+    if(sx < 0 || sy < 0 || sx + w > canvas.width || sy + h > canvas.height) return;
+
+    const imgData = ctx.getImageData(sx, sy, w, h);
+    
+    // Shift pixels based on direction (simplified smear)
+    // We shift the array indices slightly
+    const shift = Math.min(Math.floor(speed * 0.5), 4); // Max shift 4 pixels
+    if(shift === 0) return;
+
+    const data = imgData.data;
+    const copy = new Uint8ClampedArray(data); // Backup
+
+    // Simple smear logic: pull pixels from behind (opposite to movement)
+    // Note: We don't know exact direction vector here without passing it, 
+    // but we can approximate by shifting rows/columns based on mouse deltas.
+    // For this simplified version, we just blur heavily to simulate blending edges.
+    
+    // Actually, let's make it a "Softener" / "Blender" for the Knife effect
+    // as true directional smear requires complex vector math per pixel.
+    // A "Blender" is very useful for oil painting anyway.
+    
+    // Apply a localized box blur
+    const radiusSq = radius * radius;
+    
+    for (let i = 0; i < data.length; i += 4) {
+        // Sample random neighbor
+        const rOff = (Math.random() - 0.5) * radius;
+        const cOff = (Math.random() - 0.5) * radius;
+        
+        const sampleX = Math.floor((i/4) % w + rOff);
+        const sampleY = Math.floor((i/4) / w + cOff);
+        
+        if(sampleX >=0 && sampleX < w && sampleY >= 0 && sampleY < h) {
+            const idx = (sampleY * w + sampleX) * 4;
+            data[i] = copy[idx];
+            data[i+1] = copy[idx+1];
+            data[i+2] = copy[idx+2];
+            // Alpha stays mostly same
+        }
+    }
+    
+    ctx.putImageData(imgData, sx, sy);
+}
+
+/**
+ * Blur Tool
+ * Gaussian-ish blur on a localized area.
+ */
+function blurArea(x, y, radius) {
+    const sx = Math.floor(x - radius);
+    const sy = Math.floor(y - radius);
+    const w = radius * 2;
+    const h = radius * 2;
+
+    if(sx < 0 || sy < 0 || sx + w > canvas.width || sy + h > canvas.height) return;
+
+    // Drawing a blurred circle with shadow is much faster than pixel manipulation
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.clip();
+    
+    // We can't easily blur existing pixels without read/write.
+    // We use the composite trick: Draw the existing area on top with a blur filter
+    // But filter is slow.
+    // Alternative: Just "Smudge" the colors together (already handled by brush mixing).
+    
+    // Let's implement a localized "Gaussian Blur" via pixel sampling (Heavy but effective)
+    try {
+        const imgData = ctx.getImageData(sx, sy, w, h);
+        const data = imgData.data;
+        const copy = new Uint8ClampedArray(data);
+        
+        // 3x3 Kernel approximation
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const idx = (y * w + x) * 4;
+                
+                let r = 0, g = 0, b = 0, count = 0;
+                
+                // Neighbors
+                for(let ky = -1; ky <= 1; ky++) {
+                    for(let kx = -1; kx <= 1; kx++) {
+                        const nIdx = ((y+ky) * w + (x+kx)) * 4;
+                        r += copy[nIdx];
+                        g += copy[nIdx+1];
+                        b += copy[nIdx+2];
+                        count++;
+                    }
+                }
+                
+                data[idx] = r / count;
+                data[idx+1] = g / count;
+                data[idx+2] = b / count;
+                // Alpha remains
+            }
+        }
+        ctx.putImageData(imgData, sx, sy);
+    } catch(e) {}
+    
+    ctx.restore();
+}
+
+function eraseDot(x, y, radius) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,1)';
+    ctx.fill();
+    ctx.restore();
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+}
+
+// --- UNDO / HISTORY ---
+
 function saveState() {
-    if (state.history.length > 20) state.history.shift();
-    state.history.push(canvas.toDataURL());
-    state.redoStack = [];
+    // Limit history size
+    if (state.historyIndex < state.history.length - 1) {
+        state.history = state.history.slice(0, state.historyIndex + 1);
+    }
+    
+    // Get current image data
+    // We store as DataURL string to be compatible with LocalForage easily
+    // Compression reduces memory usage (0.7 is good balance)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    
+    state.history.push(dataUrl);
+    
+    if (state.history.length > state.maxHistory) {
+        state.history.shift();
+    } else {
+        state.historyIndex++;
+    }
+    
+    updateUIStatus('State saved');
 }
 
 function undo() {
-    if (state.history.length > 1) {
-        state.redoStack.push(state.history.pop());
-        const last = state.history[state.history.length - 1];
-        restoreFromData(last);
-    }
-}
-
-function redo() {
-    if (state.redoStack.length > 0) {
-        const next = state.redoStack.pop();
-        state.history.push(next);
-        restoreFromData(next);
-    }
-}
-
-function restoreFromData(dataURL) {
-    const img = new Image();
-    img.onload = () => {
+    if (state.historyIndex > 0) {
+        state.historyIndex--;
+        const img = new Image();
+        img.src = state.history[state.historyIndex];
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        updateUIStatus('Undo');
+    } else if (state.historyIndex === 0) {
+        // Clear to blank
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
-    };
-    img.src = dataURL;
-}
-
-// Storage Logic
-async function saveToLocal() {
-    const id = Date.now();
-    const data = canvas.toDataURL('image/jpeg', 0.8);
-    try {
-        await localforage.setItem(`art_${id}`, { id, data, date: new Date().toLocaleString() });
-        showToast("Artwork Saved!");
-        loadGallery();
-    } catch (e) {
-        showToast("Error saving...");
+        state.historyIndex = -1;
+        updateUIStatus('Undo');
     }
 }
 
-async function loadGallery() {
-    const gallery = document.getElementById('gallery');
-    const container = document.getElementById('gallery-container');
-    gallery.innerHTML = '';
-    
-    const keys = await localforage.keys();
-    const items = keys.filter(k => k.startsWith('art_'));
-    
-    if (items.length > 0) {
-        container.classList.remove('hidden');
-        for (let key of items) {
-            const item = await localforage.getItem(key);
-            const div = document.createElement('div');
-            div.className = "relative flex-shrink-0 group cursor-pointer";
-            div.innerHTML = `
-                <img src="${item.data}" class="h-16 w-24 object-cover border rounded hover:border-amber-500">
-                <button class="delete-art absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:block" data-id="${key}">&times;</button>
-            `;
-            div.onclick = (e) => {
-                if(e.target.classList.contains('delete-art')) return;
-                restoreFromData(item.data);
-                showToast("Loaded artwork");
-            };
-            div.querySelector('.delete-art').onclick = async (e) => {
-                e.stopPropagation();
-                await localforage.removeItem(key);
-                loadGallery();
-            };
-            gallery.appendChild(div);
-        }
-    } else {
-        container.classList.add('hidden');
+// --- STORAGE (LocalForage) ---
+
+function saveToStorage() {
+    if (!window.localforage) {
+        updateUIStatus('Storage lib not loaded');
+        return;
     }
+    
+    const dataUrl = canvas.toDataURL('image/png');
+    localforage.setItem('oilPainting', dataUrl).then(() => {
+        updateUIStatus('Saved to Local Storage');
+    }).catch(err => {
+        console.error(err);
+        updateUIStatus('Save Failed');
+    });
 }
 
-// Event Listeners
-function setupEventListeners() {
-    // Mouse
-    canvas.addEventListener('mousedown', startPainting);
-    window.addEventListener('mousemove', paint);
-    window.addEventListener('mouseup', stopPainting);
-
-    // Touch
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startPainting(e); }, { passive: false });
-    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); paint(e); }, { passive: false });
-    canvas.addEventListener('touchend', stopPainting);
-
-    // Tools
-    document.querySelectorAll('.tool-btn').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
-            btn.classList.add('active-tool');
-            state.tool = btn.dataset.tool;
-        };
-    });
-
-    document.querySelectorAll('.color-swatch').forEach(swatch => {
-        swatch.onclick = () => {
-            state.color = swatch.dataset.color;
-            if(state.tool === 'erase') {
-                state.tool = 'round';
-                document.querySelector('[data-tool="round"]').classList.add('active-tool');
-                document.querySelector('[data-tool="erase"]').classList.remove('active-tool');
-            }
-        };
-    });
-
-    document.getElementById('customColor').oninput = (e) => {
-        state.color = e.target.value;
-    };
-
-    document.getElementById('sizeSlider').oninput = (e) => {
-        state.size = parseInt(e.target.value);
-    };
-
-    document.getElementById('undoBtn').onclick = undo;
-    document.getElementById('redoBtn').onclick = redo;
-    document.getElementById('saveBtn').onclick = saveToLocal;
-    document.getElementById('clearBtn').onclick = () => {
-        if(confirm("Clear canvas?")) {
-            ctx.fillStyle = '#f3f0e9';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            saveState();
-        }
-    };
+function loadFromStorage() {
+    if (!window.localforage) return;
     
-    document.getElementById('closeGallery').onclick = () => {
-        document.getElementById('gallery-container').classList.add('hidden');
-    };
+    localforage.getItem('oilPainting').then((dataUrl) => {
+        if (dataUrl) {
+            const img = new Image();
+            img.src = dataUrl;
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                saveState(); // Add loaded image to undo stack
+                updateUIStatus('Loaded');
+            };
+        } else {
+            updateUIStatus('No saved drawing');
+        }
+    });
+}
 
-    window.onresize = resize;
+function updateUIStatus(msg) {
+    ui.status.textContent = msg;
+    ui.status.style.opacity = 1;
+    setTimeout(() => {
+        ui.status.style.opacity = 0;
+    }, 1500);
+}
+
+// --- RENDER LOOP (Optional animations or dynamic brush preview) ---
+// The main drawing happens in event handlers, but we can use this for cursor previews or drying simulation
+function render() {
+    // If we wanted to simulate paint drying (changing sheen), we would do it here.
+    // For this version, we keep it static to save battery.
+    requestAnimationFrame(render);
 }
 
 // Start
-window.onload = init;
-</script>
+init();
 
+</script>
 </body>
 </html>
-
