@@ -2,552 +2,492 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oil Painting Simulator</title>
-    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Impasto - Oil Paint Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --panel-bg: rgba(255, 255, 255, 0.9);
+            --accent: #d97706;
         }
-        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+            margin: 0;
             overflow: hidden;
-        }
-        
-        .header {
-            background-color: #333;
-            color: white;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        
-        .header h1 {
-            font-size: 24px;
-            font-weight: 300;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .tool-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            background-color: rgba(255,255,255,0.1);
-            padding: 5px 10px;
-            border-radius: 5px;
-        }
-        
-        .tool-group label {
-            font-size: 14px;
-            margin-right: 5px;
-        }
-        
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #45a049;
-        }
-        
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .brush-selector {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .brush-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #555;
-            color: white;
-            font-size: 12px;
-        }
-        
-        .brush-option.active {
-            background-color: #4CAF50;
-            box-shadow: 0 0 0 2px white;
-        }
-        
-        input[type="color"] {
-            width: 40px;
-            height: 30px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        
-        input[type="range"] {
-            width: 100px;
-        }
-        
-        .canvas-container {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #e0e0e0;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        #paintCanvas {
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            cursor: crosshair;
+            background-color: #1a1a1a;
+            font-family: system-ui, -apple-system, sans-serif;
             touch-action: none;
         }
-        
-        .notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #333;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 1000;
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: crosshair;
         }
-        
-        .notification.show {
-            opacity: 1;
+        canvas {
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            background-image: url('https://www.transparenttextures.com/patterns/canvas-paper.png');
+            background-color: #f3f0e9;
+            touch-action: none;
         }
+        .ui-panel {
+            position: absolute;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        .brush-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            margin: 0 auto;
+        }
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.1s;
+        }
+        .color-swatch:active { transform: scale(0.9); }
+        .active-tool { border-color: var(--accent) !important; background: #fef3c7; }
         
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .controls {
-                justify-content: center;
-            }
-            
-            .tool-group {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
+        /* Custom scrollbar for gallery */
+        #gallery::-webkit-scrollbar { height: 4px; }
+        #gallery::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+
+        @media (max-width: 640px) {
+            .ui-panel { padding: 8px; }
+            .mobile-hide { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Oil Painting Simulator</h1>
-        <div class="controls">
-            <div class="tool-group">
-                <label>Brush:</label>
-                <div class="brush-selector">
-                    <div class="brush-option active" data-brush="round">●</div>
-                    <div class="brush-option" data-brush="flat">■</div>
-                    <div class="brush-option" data-brush="filbert">◈</div>
-                    <div class="brush-option" data-brush="dagger">✕</div>
-                </div>
-            </div>
-            
-            <div class="tool-group">
-                <label>Size:</label>
-                <input type="range" id="brushSize" min="1" max="50" value="10">
-                <span id="sizeValue">10</span>
-            </div>
-            
-            <div class="tool-group">
-                <label>Color:</label>
-                <input type="color" id="colorPicker" value="#000000">
-            </div>
-            
-            <div class="tool-group">
-                <button id="eraserBtn">Eraser</button>
-                <button id="undoBtn">Undo</button>
-                <button id="redoBtn">Redo</button>
-            </div>
-            
-            <div class="tool-group">
-                <button id="clearBtn">Clear</button>
-                <button id="saveBtn">Save</button>
-                <button id="loadBtn">Load</button>
-            </div>
+
+<div id="canvas-container">
+    <canvas id="mainCanvas"></canvas>
+</div>
+
+<!-- Top Controls -->
+<div class="ui-panel top-4 left-4 right-4 flex justify-between items-center">
+    <div class="flex gap-2">
+        <button id="undoBtn" class="p-2 hover:bg-gray-200 rounded" title="Undo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6"/></svg>
+        </button>
+        <button id="redoBtn" class="p-2 hover:bg-gray-200 rounded" title="Redo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10H11a8 8 0 0 0-8 8v2m18-10l-6 6m6-6l-6-6"/></svg>
+        </button>
+    </div>
+    
+    <div class="flex gap-4 items-center">
+        <span class="text-xs font-bold uppercase text-gray-500 mobile-hide">Impasto Pro</span>
+        <div class="flex gap-1">
+            <button id="saveBtn" class="bg-amber-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-amber-700 transition">SAVE</button>
+            <button id="clearBtn" class="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-300 transition">CLEAR</button>
         </div>
     </div>
-    
-    <div class="canvas-container">
-        <canvas id="paintCanvas"></canvas>
-    </div>
-    
-    <div id="notification" class="notification"></div>
+</div>
 
-    <script>
-        // Initialize LocalForage
-        localforage.config({
-            name: 'oilPaintingApp',
-            storeName: 'paintings',
-            version: 1.0
-        });
-        
-        // Canvas setup
-        const canvas = document.getElementById('paintCanvas');
-        const ctx = canvas.getContext('2d');
-        const container = document.querySelector('.canvas-container');
-        
-        // Set canvas size
-        function resizeCanvas() {
-            const containerWidth = container.clientWidth - 40;
-            const containerHeight = container.clientHeight - 40;
-            
-            canvas.width = containerWidth;
-            canvas.height = containerHeight;
-            
-            // Redraw the current painting if exists
-            if (undoStack.length > 0) {
-                const img = new Image();
-                img.src = undoStack[undoStack.length - 1];
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0);
-                };
-            }
-        }
-        
-        // Initialize canvas
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        
-        // Drawing state
-        let isDrawing = false;
-        let currentTool = 'brush';
-        let currentBrush = 'round';
-        let currentColor = '#000000';
-        let currentSize = 10;
-        let isEraser = false;
-        let lastX = 0;
-        let lastY = 0;
-        
-        // History for undo/redo
-        const maxHistory = 50;
-        let undoStack = [];
-        let redoStack = [];
-        
-        // Save current state to undo stack
-        function saveState() {
-            if (undoStack.length >= maxHistory) {
-                undoStack.shift();
-            }
-            undoStack.push(canvas.toDataURL());
-            redoStack = [];
-            updateUndoRedoButtons();
-        }
-        
-        // Update undo/redo button states
-        function updateUndoRedoButtons() {
-            document.getElementById('undoBtn').disabled = undoStack.length <= 1;
-            document.getElementById('redoBtn').disabled = redoStack.length === 0;
-        }
-        
-        // Initialize with a white background
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+<!-- Sidebar Controls -->
+<div class="ui-panel left-4 top-24 bottom-24 w-16 flex flex-col items-center gap-6 overflow-y-auto">
+    <div class="flex flex-col gap-3 items-center">
+        <button data-tool="round" class="tool-btn p-2 rounded-lg active-tool" title="Round Brush">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+        </button>
+        <button data-tool="flat" class="tool-btn p-2 rounded-lg" title="Flat Brush">
+            <rect x="6" y="6" width="12" height="12" fill="currentColor"/>
+        </button>
+        <button data-tool="knife" class="tool-btn p-2 rounded-lg" title="Palette Knife">
+            <path d="M18 4l3 3-12 12-4-1-1-4 12-12z" fill="currentColor"/>
+        </button>
+        <button data-tool="erase" class="tool-btn p-2 rounded-lg" title="Eraser">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z"/></svg>
+        </button>
+    </div>
+
+    <div class="h-px w-full bg-gray-200"></div>
+
+    <div class="flex flex-col gap-2">
+        <div class="color-swatch active-color" style="background-color: #2c3e50;" data-color="#2c3e50"></div>
+        <div class="color-swatch" style="background-color: #e74c3c;" data-color="#e74c3c"></div>
+        <div class="color-swatch" style="background-color: #f1c40f;" data-color="#f1c40f"></div>
+        <div class="color-swatch" style="background-color: #27ae60;" data-color="#27ae60"></div>
+        <div class="color-swatch" style="background-color: #3498db;" data-color="#3498db"></div>
+        <div class="color-swatch" style="background-color: #ffffff; border: 1px solid #ddd;" data-color="#ffffff"></div>
+        <input type="color" id="customColor" class="w-8 h-8 cursor-pointer rounded">
+    </div>
+
+    <div class="h-px w-full bg-gray-200"></div>
+
+    <div class="flex flex-col items-center gap-1 w-full">
+        <label class="text-[10px] font-bold">SIZE</label>
+        <input type="range" id="sizeSlider" min="5" max="80" value="25" class="h-24 w-1 flex-1 accent-amber-600" style="appearance: slider-vertical;">
+    </div>
+</div>
+
+<!-- Bottom Gallery -->
+<div id="gallery-container" class="ui-panel bottom-4 left-4 right-4 h-24 hidden">
+    <div class="flex justify-between items-center mb-1">
+        <h3 class="text-[10px] font-bold uppercase text-gray-500">My Gallery</h3>
+        <button id="closeGallery" class="text-gray-400 hover:text-black">&times;</button>
+    </div>
+    <div id="gallery" class="flex gap-4 overflow-x-auto pb-2 h-16">
+        <!-- Saved items go here -->
+    </div>
+</div>
+
+<!-- Notification -->
+<div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-2 rounded-full opacity-0 transition-opacity pointer-events-none z-50">
+    Saved to Local Storage
+</div>
+
+<script>
+/**
+ * Oil Paint Simulation Logic
+ * Uses a secondary canvas to track "wetness" and surface pigment for mixing.
+ */
+
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const toast = document.getElementById('toast');
+
+// Settings
+let state = {
+    isPainting: false,
+    tool: 'round',
+    color: '#2c3e50',
+    size: 25,
+    opacity: 0.8,
+    history: [],
+    redoStack: [],
+    lastPos: { x: 0, y: 0 },
+    pressure: 1.0,
+    mixRate: 0.15 // How much background color mixes into brush
+};
+
+// Initialize
+function init() {
+    resize();
+    setupEventListeners();
+    loadGallery();
+    
+    // Fill initial canvas
+    ctx.fillStyle = '#f3f0e9';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    saveState();
+}
+
+function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    
+    // Save current content
+    const tempData = canvas.toDataURL();
+    
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+    ctx.scale(dpr, dpr);
+    
+    // Restore content
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+    img.src = tempData;
+}
+
+function showToast(msg) {
+    toast.innerText = msg;
+    toast.style.opacity = '1';
+    setTimeout(() => toast.style.opacity = '0', 2000);
+}
+
+// Color Utility: Mixes two hex colors
+function mixColors(color1, color2, weight) {
+    const c1 = hexToRgb(color1);
+    const c2 = hexToRgb(color2);
+    if (!c1 || !c2) return color1;
+
+    const r = Math.round(c1.r * (1 - weight) + c2.r * weight);
+    const g = Math.round(c1.g * (1 - weight) + c2.g * weight);
+    const b = Math.round(c1.b * (1 - weight) + c2.b * weight);
+    return `rgb(${r},${g},${b})`;
+}
+
+function hexToRgb(hex) {
+    if (hex.startsWith('rgb')) {
+        const parts = hex.match(/\d+/g);
+        return { r: parseInt(parts[0]), g: parseInt(parts[1]), b: parseInt(parts[2]) };
+    }
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+// Painting Logic
+function startPainting(e) {
+    state.isPainting = true;
+    const pos = getPos(e);
+    state.lastPos = pos;
+    paint(e);
+}
+
+function stopPainting() {
+    if (state.isPainting) {
+        state.isPainting = false;
         saveState();
+    }
+}
+
+function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+    };
+}
+
+function paint(e) {
+    if (!state.isPainting) return;
+    const pos = getPos(e);
+    
+    // Sample the color currently under the brush for mixing simulation
+    const sampleX = Math.floor(pos.x * (window.devicePixelRatio || 1));
+    const sampleY = Math.floor(pos.y * (window.devicePixelRatio || 1));
+    try {
+        const pixel = ctx.getImageData(sampleX, sampleY, 1, 1).data;
+        const bgColor = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
         
-        // Brush types
-        const brushes = {
-            round: (x, y, size, color, opacity) => {
-                ctx.globalAlpha = opacity;
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.arc(x, y, size/2, 0, Math.PI * 2);
-                ctx.fill();
-            },
+        // Dynamic mixing: the brush "picks up" some of the underlying paint
+        const drawColor = state.tool === 'erase' ? '#f3f0e9' : mixColors(state.color, bgColor, state.mixRate);
+        
+        drawBrush(state.lastPos.x, state.lastPos.y, pos.x, pos.y, drawColor);
+    } catch(err) {}
+
+    state.lastPos = pos;
+}
+
+function drawBrush(x1, y1, x2, y2, color) {
+    const distance = Math.hypot(x2 - x1, y2 - y1);
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const steps = Math.max(1, Math.floor(distance / 2));
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    for (let i = 0; i <= steps; i++) {
+        const x = x1 + (Math.cos(angle) * (distance / steps) * i);
+        const y = y1 + (Math.sin(angle) * (distance / steps) * i);
+        
+        if (state.tool === 'round') {
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, state.size / 2);
+            grad.addColorStop(0, color);
+            grad.addColorStop(0.8, color);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(x, y, state.size / 2, 0, Math.PI * 2);
+            ctx.fill();
             
-            flat: (x, y, size, color, opacity) => {
-                ctx.globalAlpha = opacity;
-                ctx.fillStyle = color;
-                ctx.fillRect(x - size/2, y - size/4, size, size/2);
-            },
-            
-            filbert: (x, y, size, color, opacity) => {
-                ctx.globalAlpha = opacity;
-                ctx.fillStyle = color;
+            // Texture overlay (Bristles)
+            ctx.globalAlpha = 0.1;
+            ctx.strokeStyle = '#000';
+            for(let b=0; b<5; b++) {
                 ctx.beginPath();
-                ctx.ellipse(x, y, size/2, size/4, 0, 0, Math.PI * 2);
-                ctx.fill();
-            },
-            
-            dagger: (x, y, size, color, opacity) => {
-                ctx.globalAlpha = opacity;
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.moveTo(x - size/2, y + size/4);
-                ctx.lineTo(x, y - size/2);
-                ctx.lineTo(x + size/2, y + size/4);
-                ctx.closePath();
-                ctx.fill();
+                ctx.moveTo(x - 5, y - 5 + b*2);
+                ctx.lineTo(x + 5, y - 5 + b*2);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+
+        } else if (state.tool === 'flat') {
+            ctx.fillStyle = color;
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.fillRect(-state.size/2, -state.size/4, state.size, state.size/2);
+            // Simulate thickness
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.strokeRect(-state.size/2, -state.size/4, state.size, 1);
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
+
+        } else if (state.tool === 'knife') {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x, y - state.size/2);
+            ctx.lineTo(x + state.size, y);
+            ctx.lineTo(x, y + state.size/2);
+            ctx.closePath();
+            ctx.fill();
+            // Edge highlight
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        } else if (state.tool === 'erase') {
+            ctx.fillStyle = '#f3f0e9';
+            ctx.beginPath();
+            ctx.arc(x, y, state.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    ctx.restore();
+}
+
+// Undo/Redo System
+function saveState() {
+    if (state.history.length > 20) state.history.shift();
+    state.history.push(canvas.toDataURL());
+    state.redoStack = [];
+}
+
+function undo() {
+    if (state.history.length > 1) {
+        state.redoStack.push(state.history.pop());
+        const last = state.history[state.history.length - 1];
+        restoreFromData(last);
+    }
+}
+
+function redo() {
+    if (state.redoStack.length > 0) {
+        const next = state.redoStack.pop();
+        state.history.push(next);
+        restoreFromData(next);
+    }
+}
+
+function restoreFromData(dataURL) {
+    const img = new Image();
+    img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+    };
+    img.src = dataURL;
+}
+
+// Storage Logic
+async function saveToLocal() {
+    const id = Date.now();
+    const data = canvas.toDataURL('image/jpeg', 0.8);
+    try {
+        await localforage.setItem(`art_${id}`, { id, data, date: new Date().toLocaleString() });
+        showToast("Artwork Saved!");
+        loadGallery();
+    } catch (e) {
+        showToast("Error saving...");
+    }
+}
+
+async function loadGallery() {
+    const gallery = document.getElementById('gallery');
+    const container = document.getElementById('gallery-container');
+    gallery.innerHTML = '';
+    
+    const keys = await localforage.keys();
+    const items = keys.filter(k => k.startsWith('art_'));
+    
+    if (items.length > 0) {
+        container.classList.remove('hidden');
+        for (let key of items) {
+            const item = await localforage.getItem(key);
+            const div = document.createElement('div');
+            div.className = "relative flex-shrink-0 group cursor-pointer";
+            div.innerHTML = `
+                <img src="${item.data}" class="h-16 w-24 object-cover border rounded hover:border-amber-500">
+                <button class="delete-art absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:block" data-id="${key}">&times;</button>
+            `;
+            div.onclick = (e) => {
+                if(e.target.classList.contains('delete-art')) return;
+                restoreFromData(item.data);
+                showToast("Loaded artwork");
+            };
+            div.querySelector('.delete-art').onclick = async (e) => {
+                e.stopPropagation();
+                await localforage.removeItem(key);
+                loadGallery();
+            };
+            gallery.appendChild(div);
+        }
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+// Event Listeners
+function setupEventListeners() {
+    // Mouse
+    canvas.addEventListener('mousedown', startPainting);
+    window.addEventListener('mousemove', paint);
+    window.addEventListener('mouseup', stopPainting);
+
+    // Touch
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startPainting(e); }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); paint(e); }, { passive: false });
+    canvas.addEventListener('touchend', stopPainting);
+
+    // Tools
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
+            btn.classList.add('active-tool');
+            state.tool = btn.dataset.tool;
+        };
+    });
+
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.onclick = () => {
+            state.color = swatch.dataset.color;
+            if(state.tool === 'erase') {
+                state.tool = 'round';
+                document.querySelector('[data-tool="round"]').classList.add('active-tool');
+                document.querySelector('[data-tool="erase"]').classList.remove('active-tool');
             }
         };
-        
-        // Get mouse/touch position
-        function getPosition(e) {
-            const rect = canvas.getBoundingClientRect();
-            let x, y;
-            
-            if (e.touches) {
-                x = e.touches[0].clientX - rect.left;
-                y = e.touches[0].clientY - rect.top;
-            } else {
-                x = e.clientX - rect.left;
-                y = e.clientY - rect.top;
-            }
-            
-            return { x, y };
+    });
+
+    document.getElementById('customColor').oninput = (e) => {
+        state.color = e.target.value;
+    };
+
+    document.getElementById('sizeSlider').oninput = (e) => {
+        state.size = parseInt(e.target.value);
+    };
+
+    document.getElementById('undoBtn').onclick = undo;
+    document.getElementById('redoBtn').onclick = redo;
+    document.getElementById('saveBtn').onclick = saveToLocal;
+    document.getElementById('clearBtn').onclick = () => {
+        if(confirm("Clear canvas?")) {
+            ctx.fillStyle = '#f3f0e9';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            saveState();
         }
-        
-        // Draw with oil painting effect
-        function draw(x, y) {
-            // Calculate distance between points
-            const distance = Math.sqrt(Math.pow(x - lastX, 2) + Math.pow(y - lastY, 2));
-            const steps = Math.max(1, Math.ceil(distance / 2));
-            
-            // Draw multiple layers to create oil painting effect
-            const layers = 3;
-            for (let layer = 0; layer < layers; layer++) {
-                for (let i = 0; i < steps; i++) {
-                    const t = i / steps;
-                    const px = lastX + (x - lastX) * t;
-                    const py = lastY + (y - lastY) * t;
-                    
-                    // Add some randomness for texture
-                    const offsetX = (Math.random() - 0.5) * currentSize * 0.3;
-                    const offsetY = (Math.random() - 0.5) * currentSize * 0.3;
-                    const size = currentSize * (0.7 + Math.random() * 0.3);
-                    const opacity = 0.2 + Math.random() * 0.3;
-                    
-                    // Set composite operation for oil mixing effect
-                    if (!isEraser) {
-                        ctx.globalCompositeOperation = 'multiply';
-                    } else {
-                        ctx.globalCompositeOperation = 'destination-out';
-                    }
-                    
-                    // Draw brush stroke
-                    brushes[currentBrush](px + offsetX, py + offsetY, size, currentColor, opacity);
-                }
-            }
-            
-            // Reset composite operation
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.globalAlpha = 1;
-        }
-        
-        // Drawing functions
-        function startDrawing(e) {
-            e.preventDefault();
-            isDrawing = true;
-            const pos = getPosition(e);
-            lastX = pos.x;
-            lastY = pos.y;
-        }
-        
-        function drawAction(e) {
-            e.preventDefault();
-            if (!isDrawing) return;
-            
-            const pos = getPosition(e);
-            draw(pos.x, pos.y);
-            lastX = pos.x;
-            lastY = pos.y;
-        }
-        
-        function stopDrawing(e) {
-            e.preventDefault();
-            if (isDrawing) {
-                isDrawing = false;
-                saveState();
-            }
-        }
-        
-        // Mouse events
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', drawAction);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-        
-        // Touch events
-        canvas.addEventListener('touchstart', startDrawing);
-        canvas.addEventListener('touchmove', drawAction);
-        canvas.addEventListener('touchend', stopDrawing);
-        
-        // Brush selection
-        document.querySelectorAll('.brush-option').forEach(brush => {
-            brush.addEventListener('click', function() {
-                document.querySelectorAll('.brush-option').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentBrush = this.dataset.brush;
-                isEraser = false;
-                document.getElementById('eraserBtn').textContent = 'Eraser';
-                canvas.style.cursor = 'crosshair';
-            });
-        });
-        
-        // Brush size
-        const brushSizeInput = document.getElementById('brushSize');
-        const sizeValue = document.getElementById('sizeValue');
-        
-        brushSizeInput.addEventListener('input', function() {
-            currentSize = this.value;
-            sizeValue.textContent = this.value;
-        });
-        
-        // Color picker
-        const colorPicker = document.getElementById('colorPicker');
-        colorPicker.addEventListener('change', function() {
-            currentColor = this.value;
-        });
-        
-        // Eraser
-        const eraserBtn = document.getElementById('eraserBtn');
-        eraserBtn.addEventListener('click', function() {
-            isEraser = !isEraser;
-            this.textContent = isEraser ? 'Brush' : 'Eraser';
-            canvas.style.cursor = isEraser ? 'grab' : 'crosshair';
-        });
-        
-        // Clear canvas
-        const clearBtn = document.getElementById('clearBtn');
-        clearBtn.addEventListener('click', function() {
-            if (confirm('Are you sure you want to clear the canvas?')) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                saveState();
-                showNotification('Canvas cleared');
-            }
-        });
-        
-        // Undo
-        const undoBtn = document.getElementById('undoBtn');
-        undoBtn.addEventListener('click', function() {
-            if (undoStack.length > 1) {
-                redoStack.push(undoStack.pop());
-                const previousState = undoStack[undoStack.length - 1];
-                const img = new Image();
-                img.src = previousState;
-                img.onload = () => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0);
-                    updateUndoRedoButtons();
-                };
-                showNotification('Undid last action');
-            }
-        });
-        
-        // Redo
-        const redoBtn = document.getElementById('redoBtn');
-        redoBtn.addEventListener('click', function() {
-            if (redoStack.length > 0) {
-                const nextState = redoStack.pop();
-                undoStack.push(nextState);
-                const img = new Image();
-                img.src = nextState;
-                img.onload = () => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0);
-                    updateUndoRedoButtons();
-                };
-                showNotification('Redid last action');
-            }
-        });
-        
-        // Save painting
-        const saveBtn = document.getElementById('saveBtn');
-        saveBtn.addEventListener('click', function() {
-            const dataURL = canvas.toDataURL();
-            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-            
-            localforage.setItem(`painting_${timestamp}`, dataURL, function(err) {
-                if (err) {
-                    showNotification('Error saving painting');
-                } else {
-                    showNotification(`Painting saved as ${timestamp}`);
-                }
-            });
-        });
-        
-        // Load painting
-        const loadBtn = document.getElementById('loadBtn');
-        loadBtn.addEventListener('click', function() {
-            // Get all keys and show the most recent one
-            localforage.keys(function(err, keys) {
-                if (err || keys.length === 0) {
-                    showNotification('No saved paintings found');
-                    return;
-                }
-                
-                // Sort keys to get the most recent one
-                keys.sort();
-                const latestKey = keys[keys.length - 1];
-                
-                localforage.getItem(latestKey, function(err, value) {
-                    if (err || !value) {
-                        showNotification('Error loading painting');
-                        return;
-                    }
-                    
-                    const img = new Image();
-                    img.src = value;
-                    img.onload = () => {
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0);
-                        saveState();
-                        showNotification(`Loaded painting from ${latestKey}`);
-                    };
-                });
-            });
-        });
-        
-        // Notification function
-        function showNotification(message) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-        
-        // Initialize button states
-        updateUndoRedoButtons();
-    </script>
+    };
+    
+    document.getElementById('closeGallery').onclick = () => {
+        document.getElementById('gallery-container').classList.add('hidden');
+    };
+
+    window.onresize = resize;
+}
+
+// Start
+window.onload = init;
+</script>
+
 </body>
 </html>
+
