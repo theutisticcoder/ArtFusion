@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oil Painting Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e6e6e6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            gap: 1rem;
+            padding: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .toolbar {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 1rem;
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: calc(100vh - 150px);
+            overflow-y: auto;
+        }
+
+        .tool-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tool-section h3 {
+            color: #ffd700;
+            margin-bottom: 0.8rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .brush-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .brush-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            text-align: center;
+        }
+
+        .brush-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .brush-btn.active {
+            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+            color: #1a1a2e;
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .color-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .color-btn.active {
+            border-color: white;
+            box-shadow: 0 0 0 3px #ffd700;
+            transform: scale(1.2);
+        }
+
+        .custom-color-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+        .color-input {
+            width: 50px;
+            height: 35px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #ffd700;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn.danger {
+            background: rgba(231, 76, 60, 0.2);
+            border-color: rgba(231, 76, 60, 0.4);
+        }
+
+        .btn.danger:hover {
+            background: rgba(231, 76, 60, 0.3);
+        }
+
+        .btn.success {
+            background: rgba(46, 204, 113, 0.2);
+            border-color: rgba(46, 204, 113, 0.4);
+        }
+
+        .btn.success:hover {
+            background: rgba(46, 204, 113, 0.3);
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            min-width: 300px;
+            min-height: 300px;
+        }
+
+        #paintCanvas {
+            background: #f5f5f5;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            cursor: crosshair;
+            touch-action: none;
+            max-width: 100%;
+            max-height: 80vh;
+            border: 3px solid #333;
+        }
+
+        .status-bar {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .wet-paint-indicator {
+            background: #2196F3;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #2a2a3e;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .saved-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 1rem 0;
+        }
+
+        .saved-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .saved-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .saved-item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .mini-btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .mini-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .mini-btn.danger {
+            background: rgba(231, 76, 60, 0.2);
+            border-color: rgba(231, 76, 60, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #aaa;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #ffd700;
+            transform: translateY(150%);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+            max-width: 300px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #ffd700;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .toolbar {
+                width: 100%;
+                max-height: none;
+            }
+
+            #paintCanvas {
+                max-height: 50vh;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 215, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎨 Oil Painting Simulator</h1>
+        <p style="font-size: 0.9rem; color: #aaa; margin-top: 0.5rem;">
+            Touch, drag, and create realistic oil paintings with wet paint mixing
+        </p>
+    </header>
+
+    <div class="main-container">
+        <aside class="toolbar">
+            <!-- Brush Selection -->
+            <div class="tool-section">
+                <h3>Brushes</h3>
+                <div class="brush-selector">
+                    <button class="brush-btn active" data-brush="flat" title="Flat Brush">Flat</button>
+                    <button class="brush-btn" data-brush="round" title="Round Brush">Round</button>
+                    <button class="brush-btn" data-brush="fan" title="Fan Brush">Fan</button>
+                    <button class="brush-btn" data-brush="palette" title="Palette Knife">Knife</button>
+                    <button class="brush-btn" data-brush="soft" title="Soft Brush">Soft</button>
+                    <button class="brush-btn" data-brush="texture" title="Texture Brush">Texture</button>
+                </div>
+            </div>
+
+            <!-- Color Palette -->
+            <div class="tool-section">
+                <h3>Colors</h3>
+                <div class="color-palette">
+                    <div class="color-btn" style="background: #000000" data-color="#000000"></div>
+                    <div class="color-btn" style="background: #FFFFFF; border-color: #666" data-color="#FFFFFF"></div>
+                    <div class="color-btn" style="background: #FF0000" data-color="#FF0000"></div>
+                    <div class="color-btn" style="background: #00FF00" data-color="#00FF00"></div>
+                    <div class="color-btn" style="background: #0000FF" data-color="#0000FF"></div>
+                    <div class="color-btn" style="background: #FFFF00" data-color="#FFFF00"></div>
+                    <div class="color-btn" style="background: #FF00FF" data-color="#FF00FF"></div>
+                    <div class="color-btn" style="background: #00FFFF" data-color="#00FFFF"></div>
+                    <div class="color-btn" style="background: #FFA500" data-color="#FFA500"></div>
+                    <div class="color-btn" style="background: #8B4513" data-color="#8B4513"></div>
+                    <div class="color-btn" style="background: #808080" data-color="#808080"></div>
+                    <div class="color-btn" style="background: #FFC0CB" data-color="#FFC0CB"></div>
+                </div>
+                <div class="custom-color-wrapper">
+                    <input type="color" id="customColor" value="#6B5B95" class="color-input">
+                    <span style="font-size: 0.85rem; color: #aaa;">Custom Color</span>
+                </div>
+            </div>
+
+            <!-- Brush Settings -->
+            <div class="tool-section">
+                <h3>Brush Settings</h3>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Size</span>
+                        <span id="sizeValue">30</span>
+                    </div>
+                    <input type="range" id="brushSize" min="5" max="200" value="30">
+                </div>
+                <div class="slider-group" style="margin-top: 0.8rem;">
+                    <div class="slider-label">
+                        <span>Opacity</span>
+                        <span id="opacityValue">0.9</span>
+                    </div>
+                    <input type="range" id="brushOpacity" min="0.1" max="1" step="0.05" value="0.9">
+                </div>
+            </div>
+
+            <!-- Painting Features -->
+            <div class="tool-section">
+                <h3>Features</h3>
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="wetPaintMode" checked>
+                    <label for="wetPaintMode">Wet Paint Mixing</label>
+                </div>
+                <div class="slider-group" style="margin-top: 0.8rem;">
+                    <div class="slider-label">
+                        <span>Wetness</span>
+                        <span id="wetnessValue">0.7</span>
+                    </div>
+                    <input type="range" id="wetness" min="0" max="1" step="0.1" value="0.7">
+                </div>
+                <div class="checkbox-wrapper" style="margin-top: 0.5rem;">
+                    <input type="checkbox" id="enableSmoothing">
+                    <label for="enableSmoothing">Brush Smoothing</label>
+                </div>
+            </div>
+
+            <!-- Tools -->
+            <div class="tool-section">
+                <h3>Tools</h3>
+                <div class="action-buttons">
+                    <button class="btn" id="eraserBtn">
+                        <span>🗑️</span> Eraser
+                    </button>
+                    <button class="btn" id="undoBtn">
+                        <span>↩️</span> Undo
+                    </button>
+                    <button class="btn" id="redoBtn">
+                        <span>↪️</span> Redo
+                    </button>
+                    <button class="btn danger" id="clearBtn">
+                        <span>🗑️</span> Clear Canvas
+                    </button>
+                </div>
+            </div>
+
+            <!-- Storage -->
+            <div class="tool-section">
+                <h3>Storage</h3>
+                <div class="action-buttons">
+                    <button class="btn success" id="saveBtn">
+                        <span>💾</span> Save Painting
+                    </button>
+                    <button class="btn" id="loadBtn">
+                        <span>📂</span> Load Painting
+                    </button>
+                    <button class="btn" id="exportBtn">
+                        <span>🖼️</span> Export PNG
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="canvas-container">
+            <canvas id="paintCanvas" width="1200" height="800"></canvas>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="indicator"></div>
+            <span>Ready</span>
+        </div>
+        <div class="status-item" id="wetPaintStatus">
+            <div class="indicator wet-paint-indicator"></div>
+            <span>Wet Paint Mode</span>
+        </div>
+        <div class="status-item">
+            <span id="coordsDisplay">X: 0, Y: 0</span>
+        </div>
+    </div>
+
+    <!-- Modal for Saved Paintings -->
+    <div class="modal" id="loadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Saved Paintings</h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <div id="savedListContainer" class="saved-list">
+                <div class="loading">Loading saved paintings...</div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn" id="clearAllBtn">Clear All Saved</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Oil Painting Simulator - Main Application
+        class OilPaintingSimulator {
+            constructor() {
+                this.canvas = document.getElementById('paintCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // State
+                this.isDrawing = false;
+                this.currentBrush = 'flat';
+                this.currentColor = '#000000';
+                this.brushSize = 30;
+                this.brushOpacity = 0.9;
+                this.wetPaintMode = true;
+                this.wetness = 0.7;
+                this.smoothingEnabled = false;
+                this.isEraser = false;
+                
+                // History for undo/redo
+                this.history = [];
+                this.historyIndex = -1;
+                this.maxHistory = 30;
+                
+                // Wet paint simulation data
+                this.wetPaintData = [];
+                
+                // Painting storage
+                this.savedPaintings = [];
+                
+                // Brush smoothing data
+                this.smoothPoints = [];
+                this.maxSmoothPoints = 5;
+                
+                // Initialize
+                this.init();
+            }
+
+            init() {
+                this.setupCanvas();
+                this.setupEventListeners();
+                this.loadSavedPaintings();
+                this.saveState(); // Initial blank state
+                
+                // Add some texture to the canvas for realism
+                this.createCanvasTexture();
+            }
+
+            setupCanvas() {
+                // Set canvas size based on container
+                const container = this.canvas.parentElement;
+                const rect = container.getBoundingClientRect();
+                const size = Math.min(rect.width - 20, rect.height - 20, 1200);
+                this.canvas.width = size;
+                this.canvas.height = Math.min(size * 0.67, 800);
+                
+                // Set initial background
+                this.ctx.fillStyle = '#f5f5f5';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            createCanvasTexture() {
+                // Add subtle canvas grain for realism
+                const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                const data = imageData.data;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    // Add subtle noise to the white canvas
+                    const noise = Math.random() * 3 - 1.5;
+                    data[i] = Math.max(245, Math.min(255, data[i] + noise));
+                    data[i + 1] = Math.max(245, Math.min(255, data[i + 1] + noise));
+                    data[i + 2] = Math.max(245, Math.min(255, data[i + 2] + noise));
+                }
+                
+                this.ctx.putImageData(imageData, 0, 0);
+            }
+
+            setupEventListeners() {
+                // Canvas drawing events
+                this.canvas.addEventListener('mousedown', this.startDrawing.bind(this));
+                this.canvas.addEventListener('mousemove', this.draw.bind(this));
+                this.canvas.addEventListener('mouseup', this.stopDrawing.bind(this));
+                this.canvas.addEventListener('mouseout', this.stopDrawing.bind(this));
+                
+                // Touch events
+                this.canvas.addEventListener('touchstart', this.handleTouch.bind(this));
+                this.canvas.addEventListener('touchmove', this.handleTouch.bind(this));
+                this.canvas.addEventListener('touchend', this.stopDrawing.bind(this));
+                
+                // Prevent default touch behavior
+                this.canvas.addEventListener('touchstart', (e) => e.preventDefault());
+                this.canvas.addEventListener('touchmove', (e) => e.preventDefault());
+                
+                // Coordinate display
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = Math.floor(e.clientX - rect.left);
+                    const y = Math.floor(e.clientY - rect.top);
+                    document.getElementById('coordsDisplay').textContent = `X: ${x}, Y: ${y}`;
+                });
+
+                // Brush selection
+                document.querySelectorAll('.brush-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentBrush = btn.dataset.brush;
+                        this.isEraser = false;
+                        document.getElementById('eraserBtn').classList.remove('active');
+                    });
+                });
+
+                // Color selection
+                document.querySelectorAll('.color-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentColor = btn.dataset.color;
+                        this.isEraser = false;
+                        document.getElementById('eraserBtn').classList.remove('active');
+                    });
+                });
+
+                // Custom color
+                document.getElementById('customColor').addEventListener('input', (e) => {
+                    this.currentColor = e.target.value;
+                    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                    this.isEraser = false;
+                    document.getElementById('eraserBtn').classList.remove('active');
+                });
+
+                // Brush settings
+                document.getElementById('brushSize').addEventListener('input', (e) => {
+                    this.brushSize = parseInt(e.target.value);
+                    document.getElementById('sizeValue').textContent = this.brushSize;
+                });
+
+                document.getElementById('brushOpacity').addEventListener('input', (e) => {
+                    this.brushOpacity = parseFloat(e.target.value);
+                    document.getElementById('opacityValue').textContent = this.brushOpacity;
+                });
+
+                // Features
+                document.getElementById('wetPaintMode').addEventListener('change', (e) => {
+                    this.wetPaintMode = e.target.checked;
+                    const statusEl = document.getElementById('wetPaintStatus');
+                    statusEl.style.display = e.target.checked ? 'flex' : 'none';
+                });
+
+                document.getElementById('wetness').addEventListener('input', (e) => {
+                    this.wetness = parseFloat(e.target.value);
+                    document.getElementById('wetnessValue').textContent = this.wetness;
+                });
+
+                document.getElementById('enableSmoothing').addEventListener('change', (e) => {
+                    this.smoothingEnabled = e.target.checked;
+                });
+
+                // Tools
+                document.getElementById('eraserBtn').addEventListener('click', () => {
+                    this.isEraser = !this.isEraser;
+                    document.getElementById('eraserBtn').classList.toggle('active', this.isEraser);
+                    document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+                });
+
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+                document.getElementById('redoBtn').addEventListener('click', () => this.redo());
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearCanvas());
+
+                // Storage
+                document.getElementById('saveBtn').addEventListener('click', () => this.savePainting());
+                document.getElementById('loadBtn').addEventListener('click', () => this.showLoadModal());
+                document.getElementById('exportBtn').addEventListener('click', () => this.exportImage());
+                document.getElementById('closeModal').addEventListener('click', () => this.hideLoadModal());
+                document.getElementById('clearAllBtn').addEventListener('click', () => this.clearAllSaved());
+            }
+
+            handleTouch(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = this.canvas.getBoundingClientRect();
+                const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                this.canvas.dispatchEvent(mouseEvent);
+            }
+
+            startDrawing(e) {
+                this.isDrawing = true;
+                const coords = this.getCoordinates(e);
+                this.lastPoint = coords;
+                this.startPoint = coords;
+                this.smoothPoints = [coords];
+                
+                if (this.wetPaintMode) {
+                    this.startWetPaintLayer();
+                }
+            }
+
+            draw(e) {
+                if (!this.isDrawing) return;
+                
+                const coords = this.getCoordinates(e);
+                
+                // Apply smoothing if enabled
+                if (this.smoothingEnabled) {
+                    this.smoothPoints.push(coords);
+                    if (this.smoothPoints.length > this.maxSmoothPoints) {
+                        this.smoothPoints.shift();
+                    }
+                    
+                    const smoothed = this.calculateSmoothedPoint();
+                    this.paintStroke(this.lastPoint, smoothed);
+                    this.lastPoint = smoothed;
+                } else {
+                    this.paintStroke(this.lastPoint, coords);
+                    this.lastPoint = coords;
+                }
+
+                if (this.wetPaintMode) {
+                    this.updateWetPaint(coords);
+                }
+            }
+
+            stopDrawing() {
+                if (!this.isDrawing) return;
+                this.isDrawing = false;
+                
+                if (this.wetPaintMode && this.wetPaintData.length > 0) {
+                    this.blendWetPaint();
+                    this.wetPaintData = [];
+                }
+                
+                this.smoothPoints = [];
+                this.saveState();
+            }
+
+            getCoordinates(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            calculateSmoothedPoint() {
+                if (this.smoothPoints.length === 0) return { x: 0, y: 0 };
+                
+                let totalX = 0;
+                let totalY = 0;
+                const weights = [0.2, 0.3, 0.5]; // Weight recent points more
+                
+                for (let i = 0; i < this.smoothPoints.length && i < weights.length; i++) {
+                    const idx = this.smoothPoints.length - 1 - i;
+                    totalX += this.smoothPoints[idx].x * weights[i];
+                    totalY += this.smoothPoints[idx].y * weights[i];
+                }
+                
+                return { x: totalX, y: totalY };
+            }
+
+            paintStroke(start, end) {
+                const dx = end.x - start.x;
+                const dy = end.y - start.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Interpolate between points for smooth strokes
+                const steps = Math.max(1, Math.floor(distance / 2));
+                
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = start.x + dx * t;
+                    const y = start.y + dy * t;
+                    this.paintPoint(x, y);
+                }
+            }
+
+            paintPoint(x, y) {
+                if (this.isEraser) {
+                    this.ctx.globalCompositeOperation = 'destination-out';
+                } else {
+                    this.ctx.globalCompositeOperation = 'source-over';
+                }
+
+                const size = this.brushSize;
+                const alpha = this.brushOpacity;
+
+                switch (this.currentBrush) {
+                    case 'flat':
+                        this.drawFlatBrush(x, y, size, alpha);
+                        break;
+                    case 'round':
+                        this.drawRoundBrush(x, y, size, alpha);
+                        break;
+                    case 'fan':
+                        this.drawFanBrush(x, y, size, alpha);
+                        break;
+                    case 'palette':
+                        this.drawPaletteKnife(x, y, size, alpha);
+                        break;
+                    case 'soft':
+                        this.drawSoftBrush(x, y, size, alpha);
+                        break;
+                    case 'texture':
+                        this.drawTextureBrush(x, y, size, alpha);
+                        break;
+                }
+
+                // Add some random texture for realism
+                if (!this.isEraser && Math.random() > 0.8) {
+                    this.addPaintTexture(x, y, size * 0.2);
+                }
+            }
+
+            // Brush Techniques
+            drawFlatBrush(x, y, size, alpha) {
+                const angle = Math.random() * Math.PI * 2;
+                const width = size * 0.3;
+                const height = size;
+                
+                this.ctx.save();
+                this.ctx.translate(x, y);
+                this.ctx.rotate(angle);
+                this.ctx.fillStyle = this.isEraser ? 'rgba(0,0,0,' + alpha + ')' : this.currentColor;
+                this.ctx.globalAlpha = alpha;
+                
+                // Create gradient for stroke variation
+                const gradient = this.ctx.createLinearGradient(-width/2, 0, width/2, 0);
+                gradient.addColorStop(0, 'rgba(0,0,0,0.1)');
+                gradient.addColorStop(0.5, 'rgba(0,0,0,0)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0.1)');
+                
+                if (!this.isEraser) {
+                    this.ctx.fillStyle = gradient;
+                }
+                
+                this.ctx.fillRect(-width/2, -height/2, width, height);
+                this.ctx.restore();
+            }
+
+            drawRoundBrush(x, y, size, alpha) {
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                
+                if (this.isEraser) {
+                    this.ctx.fillStyle = 'rgba(0,0,0,' + alpha + ')';
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size/2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                } else {
+                    // Create soft brush with multiple circles
+                    const layers = 3;
+                    for (let i = 0; i < layers; i++) {
+                        const layerSize = size * (1 - i * 0.25);
+                        const layerAlpha = alpha * (1 - i * 0.3);
+                        
+                        const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, layerSize/2);
+                        gradient.addColorStop(0, this.hexToRgba(this.currentColor, layerAlpha));
+                        gradient.addColorStop(0.7, this.hexToRgba(this.currentColor, layerAlpha * 0.7));
+                        gradient.addColorStop(1, this.hexToRgba(this.currentColor, 0));
+                        
+                        this.ctx.fillStyle = gradient;
+                        this.ctx.beginPath();
+                        this.ctx.arc(x, y, layerSize/2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                }
+                this.ctx.restore();
+            }
+
+            drawFanBrush(x, y, size, alpha) {
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                this.ctx.fillStyle = this.currentColor;
+                
+                if (this.isEraser) {
+                    this.ctx.fillStyle = 'rgba(0,0,0,' + alpha + ')';
+                }
+                
+                const angle = Math.random() * Math.PI * 2;
+                this.ctx.translate(x, y);
+                this.ctx.rotate(angle);
+                
+                // Draw fan shape
+                const fanSize = size;
+                for (let i = -2; i <= 2; i++) {
+                    const offset = i * 3;
+                    const length = fanSize * (1 - Math.abs(i) * 0.15);
+                    const width = 2 + (2 - Math.abs(i)) * 0.5;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(offset, 0);
+                    this.ctx.lineTo(offset + width, -length);
+                    this.ctx.lineTo(offset + width * 2, 0);
+                    this.ctx.lineTo(offset + width, length);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                }
+                this.ctx.restore();
+            }
+
+            drawPaletteKnife(x, y, size, alpha) {
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha * 0.8;
+                
+                const angle = Math.random() * Math.PI * 2;
+                this.ctx.translate(x, y);
+                this.ctx.rotate(angle);
+                
+                if (this.isEraser) {
+                    this.ctx.fillStyle = 'rgba(0,0,0,' + alpha + ')';
+                } else {
+                    // Palette knife creates thick, impasto strokes
+                    this.ctx.fillStyle = this.currentColor;
+                    this.ctx.strokeStyle = this.currentColor;
+                    this.ctx.lineWidth = 2;
+                }
+                
+                // Draw knife shape
+                const width = size * 0.4;
+                const height = size;
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, -height/2);
+                this.ctx.lineTo(width/2, 0);
+                this.ctx.lineTo(0, height/2);
+                this.ctx.lineTo(-width/2, 0);
+                this.ctx.closePath();
+                this.ctx.fill();
+                
+                // Add texture
+                for (let i = 0; i < 5; i++) {
+                    const tx = (Math.random() - 0.5) * width;
+                    const ty = (Math.random() - 0.5) * height;
+                    this.ctx.fillRect(tx - 1, ty - 1, 2, 2);
+                }
+                
+                this.ctx.restore();
+            }
+
+            drawSoftBrush(x, y, size, alpha) {
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha * 0.6;
+                
+                if (this.isEraser) {
+                    this.ctx.fillStyle = 'rgba(0,0,0,' + alpha * 0.6 + ')';
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size/2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                } else {
+                    // Very soft, watercolor-like blending
+                    const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, size/2);
+                    gradient.addColorStop(0, this.hexToRgba(this.currentColor, alpha * 0.8));
+                    gradient.addColorStop(0.5, this.hexToRgba(this.currentColor, alpha * 0.3));
+                    gradient.addColorStop(1, this.hexToRgba(this.currentColor, 0));
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size/2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.restore();
+            }
+
+            drawTextureBrush(x, y, size, alpha) {
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                
+                if (this.isEraser) {
+                    this.ctx.fillStyle = 'rgba(0,0,0,' + alpha + ')';
+                } else {
+                    this.ctx.fillStyle = this.currentColor;
+                }
+                
+                // Scatter dots for texture
+                const dots = Math.floor(size / 2);
+                for (let i = 0; i < dots; i++) {
+                    const offsetX = (Math.random() - 0.5) * size;
+                    const offsetY = (Math.random() - 0.5) * size;
+                    const dotSize = Math.random() * 3 + 1;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(x + offsetX, y + offsetY, dotSize, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.restore();
+            }
+
+            addPaintTexture(x, y, size) {
+                this.ctx.save();
+                this.ctx.globalAlpha = 0.3;
+                this.ctx.fillStyle = '#000000';
+                
+                for (let i = 0; i < 3; i++) {
+                    const offsetX = (Math.random() - 0.5) * size;
+                    const offsetY = (Math.random() - 0.5) * size;
+                    const dotSize = Math.random() * 2 + 0.5;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(x + offsetX, y + offsetY, dotSize, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.restore();
+            }
+
+            // Wet Paint Simulation
+            startWetPaintLayer() {
+                this.wetPaintData = [];
+                this.wetPaintCanvas = document.createElement('canvas');
+                this.wetPaintCanvas.width = this.canvas.width;
+                this.wetPaintCanvas.height = this.canvas.height;
+                this.wetPaintCtx = this.wetPaintCanvas.getContext('2d');
+            }
+
+            updateWetPaint(coords) {
+                if (!this.isEraser && this.wetPaintData.length < 100) { // Limit data points
+                    this.wetPaintData.push({
+                        x: coords.x,
+                        y: coords.y,
+                        color: this.currentColor,
+                        size: this.brushSize,
+                        opacity: this.brushOpacity,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+
+            blendWetPaint() {
+                if (this.wetPaintData.length < 2) return;
+
+                const blendCanvas = document.createElement('canvas');
+                blendCanvas.width = this.canvas.width;
+                blendCanvas.height = this.canvas.height;
+                const blendCtx = blendCanvas.getContext('2d');
+
+                // Copy current canvas
+                blendCtx.drawImage(this.canvas, 0, 0);
+
+                // Apply wet paint effect
+                blendCtx.save();
+                blendCtx.globalAlpha = this.wetness * 0.5;
+                
+                // Create a blur effect for wet blending
+                for (let i = 0; i < this.wetPaintData.length; i++) {
+                    const point = this.wetPaintData[i];
+                    const gradient = blendCtx.createRadialGradient(
+                        point.x, point.y, 0,
+                        point.x, point.y, point.size * 0.8
+                    );
+                    gradient.addColorStop(0, this.hexToRgba(point.color, point.opacity * 0.3));
+                    gradient.addColorStop(0.5, this.hexToRgba(point.color, point.opacity * 0.1));
+                    gradient.addColorStop(1, this.hexToRgba(point.color, 0));
+                    
+                    blendCtx.fillStyle = gradient;
+                    blendCtx.beginPath();
+                    blendCtx.arc(point.x, point.y, point.size * 0.8, 0, Math.PI * 2);
+                    blendCtx.fill();
+                }
+                
+                blendCtx.restore();
+
+                // Smooth blend with original
+                this.ctx.save();
+                this.ctx.globalAlpha = this.wetness * 0.3;
+                this.ctx.drawImage(blendCanvas, 0, 0);
+                this.ctx.restore();
+
+                // Add some mixing between nearby colors
+                this.mixAdjacentColors();
+            }
+
+            mixAdjacentColors() {
+                if (this.wetPaintData.length < 3) return;
+
+                // Sample neighboring colors and blend them
+                for (let i = 0; i < this.wetPaintData.length - 1; i++) {
+                    const p1 = this.wetPaintData[i];
+                    const p2 = this.wetPaintData[i + 1];
+                    
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 50) {
+                        // Mix colors
+                        const mixedColor = this.mixColors(p1.color, p2.color, 0.5);
+                        const x = (p1.x + p2.x) / 2;
+                        const y = (p1.y + p2.y) / 2;
+                        
+                        this.ctx.save();
+                        this.ctx.globalAlpha = this.wetness * 0.2;
+                        this.ctx.fillStyle = mixedColor;
+                        this.ctx.beginPath();
+                        this.ctx.arc(x, y, p1.size * 0.3, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.restore();
+                    }
+                }
+            }
+
+            mixColors(color1, color2, ratio) {
+                const rgb1 = this.hexToRgb(color1);
+                const rgb2 = this.hexToRgb(color2);
+                
+                const r = Math.round(rgb1.r * (1 - ratio) + rgb2.r * ratio);
+                const g = Math.round(rgb1.g * (1 - ratio) + rgb2.g * ratio);
+                const b = Math.round(rgb1.b * (1 - ratio) + rgb2.b * ratio);
+                
+                return `rgb(${r},${g},${b})`;
+            }
+
+            // History Management
+            saveState() {
+                // Remove any future states if we're not at the end
+                if (this.historyIndex < this.history.length - 1) {
+                    this.history = this.history.slice(0, this.historyIndex + 1);
+                }
+
+                // Save current canvas state
+                const imageData = this.canvas.toDataURL('image/png');
+                this.history.push(imageData);
+                
+                // Limit history size
+                if (this.history.length > this.maxHistory) {
+                    this.history.shift();
+                } else {
+                    this.historyIndex++;
+                }
+                
+                this.updateUndoRedoButtons();
+            }
+
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.restoreState(this.history[this.historyIndex]);
+                    this.updateUndoRedoButtons();
+                    this.showToast('Undo successful');
+                } else {
+                    this.showToast('Nothing to undo');
+                }
+            }
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.restoreState(this.history[this.historyIndex]);
+                    this.updateUndoRedoButtons();
+                    this.showToast('Redo successful');
+                } else {
+                    this.showToast('Nothing to redo');
+                }
+            }
+
+            restoreState(dataURL) {
+                const img = new Image();
+                img.onload = () => {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.drawImage(img, 0, 0);
+                };
+                img.src = dataURL;
+            }
+
+            updateUndoRedoButtons() {
+                const undoBtn = document.getElementById('undoBtn');
+                const redoBtn = document.getElementById('redoBtn');
+                
+                undoBtn.disabled = this.historyIndex <= 0;
+                redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+                
+                undoBtn.style.opacity = undoBtn.disabled ? '0.5' : '1';
+                redoBtn.style.opacity = redoBtn.disabled ? '0.5' : '1';
+            }
+
+            clearCanvas() {
+                if (confirm('Are you sure you want to clear the canvas? This cannot be undone.')) {
+                    this.ctx.fillStyle = '#f5f5f5';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.createCanvasTexture();
+                    this.history = [];
+                    this.historyIndex = -1;
+                    this.saveState();
+                    this.showToast('Canvas cleared');
+                }
+            }
+
+            // Storage Methods
+            async savePainting() {
+                const name = prompt('Enter a name for your painting:', `Painting ${new Date().toLocaleDateString()}`);
+                if (!name) return;
+
+                const paintingData = {
+                    id: Date.now(),
+                    name: name,
+                    date: new Date().toISOString(),
+                    imageData: this.canvas.toDataURL('image/png'),
+                    settings: {
+                        brush: this.currentBrush,
+                        color: this.currentColor,
+                        size: this.brushSize,
+                        opacity: this.brushOpacity,
+                        wetPaintMode: this.wetPaintMode,
+                        wetness: this.wetness
+                    }
+                };
+
+                // Try to save to LocalStorage first (backup)
+                try {
+                    localStorage.setItem('oilPainting_backup_' + paintingData.id, JSON.stringify(paintingData));
+                } catch (e) {
+                    console.warn('LocalStorage saving failed:', e);
+                }
+
+                // Save to IndexedDB using localForage (if available)
+                if (typeof localforage !== 'undefined') {
+                    try {
+                        const savedPaintings = (await localforage.getItem('oilPaintings')) || [];
+                        savedPaintings.push(paintingData);
+                        await localforage.setItem('oilPaintings', savedPaintings);
+                        this.showToast('Painting saved successfully!');
+                    } catch (e) {
+                        console.error('localForage save failed:', e);
+                        // Fallback to localStorage
+                        const fallback = JSON.parse(localStorage.getItem('oilPaintings') || '[]');
+                        fallback.push(paintingData);
+                        localStorage.setItem('oilPaintings', JSON.stringify(fallback));
+                        this.showToast('Saved to LocalStorage');
+                    }
+                } else {
+                    // Fallback to localStorage only
+                    const savedPaintings = JSON.parse(localStorage.getItem('oilPaintings') || '[]');
+                    savedPaintings.push(paintingData);
+                    localStorage.setItem('oilPaintings', JSON.stringify(savedPaintings));
+                    this.showToast('Saved to LocalStorage');
+                }
+
+                this.loadSavedPaintings();
+            }
+
+            async loadSavedPaintings() {
+                const container = document.getElementById('savedListContainer');
+                
+                try {
+                    let savedPaintings = [];
+                    
+                    // Try localForage first
+                    if (typeof localforage !== 'undefined') {
+                        savedPaintings = (await localforage.getItem('oilPaintings')) || [];
+                    }
+                    
+                    // Fallback to localStorage
+                    if (savedPaintings.length === 0) {
+                        savedPaintings = JSON.parse(localStorage.getItem('oilPaintings') || '[]');
+                    }
+
+                    if (savedPaintings.length === 0) {
+                        container.innerHTML = '<div class="loading">No saved paintings found</div>';
+                        return;
+                    }
+
+                    // Sort by date (newest first)
+                    savedPaintings.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    let html = '';
+                    savedPaintings.forEach(painting => {
+                        const date = new Date(painting.date).toLocaleDateString();
+                        html += `
+                            <div class="saved-item">
+                                <div>
+                                    <div style="font-weight: 600;">${this.escapeHtml(painting.name)}</div>
+                                    <div style="font-size: 0.75rem; color: #aaa;">${date}</div>
+                                </div>
+                                <div class="saved-item-actions">
+                                    <button class="mini-btn" onclick="app.loadPainting(${painting.id})">Load</button>
+                                    <button class="mini-btn danger" onclick="app.deletePainting(${painting.id})">Delete</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                } catch (e) {
+                    console.error('Error loading paintings:', e);
+                    container.innerHTML = '<div class="loading">Error loading saved paintings</div>';
+                }
+            }
+
+            async loadPainting(id) {
+                try {
+                    let savedPaintings = [];
+                    
+                    if (typeof localforage !== 'undefined') {
+                        savedPaintings = (await localforage.getItem('oilPaintings')) || [];
+                    } else {
+                        savedPaintings = JSON.parse(localStorage.getItem('oilPaintings') || '[]');
+                    }
+
+                    const painting = savedPaintings.find(p => p.id === id);
+                    if (painting) {
+                        const img = new Image();
+                        img.onload = () => {
+                            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                            this.ctx.drawImage(img, 0, 0);
+                            
+                            // Restore settings if available
+                            if (painting.settings) {
+                                const s = painting.settings;
+                                if (s.brush) {
+                                    this.currentBrush = s.brush;
+                                    document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+                                    document.querySelector(`[data-brush="${s.brush}"]`)?.classList.add('active');
+                                }
+                                if (s.color) {
+                                    this.currentColor = s.color;
+                                    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                                }
+                                if (s.size) {
+                                    this.brushSize = s.size;
+                                    document.getElementById('brushSize').value = s.size;
+                                    document.getElementById('sizeValue').textContent = s.size;
+                                }
+                                if (s.opacity) {
+                                    this.brushOpacity = s.opacity;
+                                    document.getElementById('brushOpacity').value = s.opacity;
+                                    document.getElementById('opacityValue').textContent = s.opacity;
+                                }
+                            }
+                            
+                            this.history = [];
+                            this.historyIndex = -1;
+                            this.saveState();
+                            this.showToast(`Loaded "${painting.name}"`);
+                            this.hideLoadModal();
+                        };
+                        img.src = painting.imageData;
+                    }
+                } catch (e) {
+                    console.error('Error loading painting:', e);
+                    this.showToast('Error loading painting');
+                }
+            }
+
+            async deletePainting(id) {
+                if (!confirm('Delete this painting?')) return;
+
+                try {
+                    let savedPaintings = [];
+                    
+                    if (typeof localforage !== 'undefined') {
+                        savedPaintings = (await localforage.getItem('oilPaintings')) || [];
+                    } else {
+                        savedPaintings = JSON.parse(localStorage.getItem('oilPaintings') || '[]');
+                    }
+
+                    const filtered = savedPaintings.filter(p => p.id !== id);
+                    
+                    if (typeof localforage !== 'undefined') {
+                        await localforage.setItem('oilPaintings', filtered);
+                    } else {
+                        localStorage.setItem('oilPaintings', JSON.stringify(filtered));
+                    }
+
+                    this.loadSavedPaintings();
+                    this.showToast('Painting deleted');
+                } catch (e) {
+                    console.error('Error deleting painting:', e);
+                    this.showToast('Error deleting painting');
+                }
+            }
+
+            async clearAllSaved() {
+                if (!confirm('Delete ALL saved paintings? This cannot be undone.')) return;
+
+                try {
+                    if (typeof localforage !== 'undefined') {
+                        await localforage.removeItem('oilPaintings');
+                    }
+                    localStorage.removeItem('oilPaintings');
+                    this.loadSavedPaintings();
+                    this.showToast('All paintings deleted');
+                } catch (e) {
+                    console.error('Error clearing paintings:', e);
+                    this.showToast('Error clearing paintings');
+                }
+            }
+
+            showLoadModal() {
+                document.getElementById('loadModal').style.display = 'flex';
+                this.loadSavedPaintings();
+            }
+
+            hideLoadModal() {
+                document.getElementById('loadModal').style.display = 'none';
+            }
+
+            exportImage() {
+                const link = document.createElement('a');
+                link.download = `oil-painting-${Date.now()}.png`;
+                link.href = this.canvas.toDataURL('image/png');
+                link.click();
+                this.showToast('Image exported');
+            }
+
+            // Utility Methods
+            hexToRgba(hex, alpha) {
+                const rgb = this.hexToRgb(hex);
+                return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+            }
+
+            hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : null;
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Initialize the application
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new OilPaintingSimulator();
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (app) {
+                app.setupCanvas();
+                // Restore content after resize
+                const currentState = app.history[app.historyIndex];
+                if (currentState) {
+                    app.restoreState(currentState);
+                }
+            }
+        });
+
+        // Load localForage library if not available
+        if (typeof localforage === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js';
+            script.onload = () => {
+                if (app) app.loadSavedPaintings();
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+</body>
+</html>
